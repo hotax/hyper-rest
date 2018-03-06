@@ -1,7 +1,7 @@
 {
   "name": "hyper-rest",
   "version": "1.0.0",
-  "description": "",
+  "description": "Restfull platform of hypermedia ",
   "main": "index,js",
   "directories": {
     "test": "tests"
