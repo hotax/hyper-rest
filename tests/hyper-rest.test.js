@@ -16,7 +16,7 @@ describe('hyper-rest', function () {
     describe('同数据库相关部件', function () {
         it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function (done) {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
-            var connectDb = require('../netup/db/mongoDb/ConnectMongoDb');
+            var connectDb = require('../db/mongoDb/ConnectMongoDb');
             connectDb(function () {
                 done();
             });
@@ -60,7 +60,7 @@ describe('hyper-rest', function () {
                 execStub.onCall(1).returns(Promise.resolve(countNum));
 
                 SchemaMock.expects('count').withArgs().once().returns(Schema);
-                paginatingQuery = require('../netup/db/mongoDb/PaginatingQuery');
+                paginatingQuery = require('../db/mongoDb/PaginatingQuery');
 
                 options = {schema: Schema}
             });
@@ -189,7 +189,7 @@ describe('hyper-rest', function () {
 
             it('加载一个资源描述', function () {
                 var fooDesc = require('./data/rests/foo');
-                loader = require('../netup/rests/DirectoryResourceDescriptorsLoader');
+                loader = require('../rests/DirectoryResourceDescriptorsLoader');
                 expect(loader.loadFrom(path.join(__dirname, './data/rests'))).eql({
                     foo: fooDesc
                 });
@@ -225,7 +225,7 @@ describe('hyper-rest', function () {
                 selfUrl = '/rests/foo/self';
                 urlResolveStub = sinon.stub();
                 stubs['../express/Url'] = {resolve: urlResolveStub};
-                restDescriptor = proxyquire('../netup/rests/RestDescriptor', stubs);
+                restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
             });
 
             describe('入口服务', function () {
@@ -312,7 +312,7 @@ describe('hyper-rest', function () {
                         expect(urlArg).eql(url + queryStr);
                         return selfUrl;
                     });
-                    restDescriptor = proxyquire('../netup/rests/RestDescriptor', stubs);
+                    restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
                     restDescriptor.attach(app, currentResource, url, desc);
 
                     request.get(url)
@@ -455,7 +455,7 @@ describe('hyper-rest', function () {
                         expect(urlArg).eql(url);
                         return selfUrl;
                     });
-                    restDescriptor = proxyquire('../netup/rests/RestDescriptor', stubs);
+                    restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
                     restDescriptor.attach(app, currentResource, url, desc);
 
                     request.get(url)
@@ -714,7 +714,7 @@ describe('hyper-rest', function () {
 
                 attachSpy = sinon.spy();
                 stubs['./RestDescriptor'] = {attach: attachSpy};
-                resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
             });
 
             it('一个资源应具有寻址性，必须定义url模板', function () {
@@ -749,7 +749,7 @@ describe('hyper-rest', function () {
 
                 it('无路径变量', function () {
                     urlResolveStub.withArgs(req, url).returns(expectedUrl);
-                    resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                     resource = resourceRegistry.attach(router, resourceId, desc);
                     expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
@@ -762,7 +762,7 @@ describe('hyper-rest', function () {
                     req.query.arg1 = '5678';
 
                     urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234').returns(expectedUrl);
-                    resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                     resource = resourceRegistry.attach(router, resourceId, desc);
                     expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
@@ -782,7 +782,7 @@ describe('hyper-rest', function () {
                     req.query.foo = '5678';
 
                     urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234/and/9876').returns(expectedUrl);
-                    resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                     resource = resourceRegistry.attach(router, resourceId, desc);
                     expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
@@ -808,7 +808,7 @@ describe('hyper-rest', function () {
                 var urlResolveStub = sinon.stub();
                 urlResolveStub.withArgs(req, '/url/fee').returns(expectedUrl);
                 stubs['../express/Url'] = {resolve: urlResolveStub};
-                resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                 var fooResource = resourceRegistry.attach(router, 'foo', fooDesc);
                 resourceRegistry.attach(router, 'fee', fooDesc);
@@ -822,7 +822,7 @@ describe('hyper-rest', function () {
                 var links = [{rel: "foo", href: "/foo"}, {rel: "fee", href: "/fee"}];
                 var getLinksStub = createPromiseStub([resourceId, context, req], [links]);
 
-                resourceRegistry = require('../netup/rests/ResourceRegistry');
+                resourceRegistry = require('../rests/ResourceRegistry');
                 resourceRegistry.setTransitionGraph({getLinks: getLinksStub});
                 var resource = resourceRegistry.attach(router, resourceId, desc);
 
@@ -849,7 +849,7 @@ describe('hyper-rest', function () {
             it('加载资源时将导致该资源的所有服务被加载', function () {
                 var attachSpy = sinon.spy();
                 stubs['./RestDescriptor'] = {attach: attachSpy};
-                resourceRegistry = proxyquire('../netup/rests/ResourceRegistry', stubs);
+                resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                 var resource = resourceRegistry.attach(router, resourceId, desc);
                 expect(attachSpy).calledWith(router, resource, url, restDesc);
@@ -881,7 +881,7 @@ describe('hyper-rest', function () {
                 getTransitionUrlStub.withArgs("resource1", 'foo', context, req).returns(fooUrl);
                 getTransitionUrlStub.withArgs("resource1", 'fee', context, req).returns(feeUrl);
 
-                transitionGraphFactory = require("../netup/rests/BaseTransitionGraph");
+                transitionGraphFactory = require("../rests/BaseTransitionGraph");
                 transitionGraphParser = transitionGraphFactory(transitionGraph, {
                     getTransitionUrl: getTransitionUrlStub
                 });
@@ -943,7 +943,7 @@ describe('hyper-rest', function () {
                     protocol: protocol,
                     get: getHostStub
                 };
-                URL = require('../netup/express/Url');
+                URL = require('../express/Url');
             });
 
             it('包含端口号', function () {
@@ -984,7 +984,7 @@ describe('hyper-rest', function () {
                     .returns({engine: viewEngine});
                 stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
 
-                viewsEngineFactory = proxyquire('../netup/express/HandlebarsFactory', stubs)(viewEngineName, viewsDir);
+                viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir);
                 viewsEngineFactory.attachTo(expressApp);
                 appMock.verify();
             });
@@ -997,7 +997,7 @@ describe('hyper-rest', function () {
                 }).returns({engine: viewEngine});
                 stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
 
-                viewsEngineFactory = proxyquire('../netup/express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
+                viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     partialsDir: partialsDir
                 });
                 viewsEngineFactory.attachTo(expressApp);
@@ -1012,7 +1012,7 @@ describe('hyper-rest', function () {
                 }).returns({engine: viewEngine});
                 stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
 
-                viewsEngineFactory = proxyquire('../netup/express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
+                viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     extname: extname
                 });
                 viewsEngineFactory.attachTo(expressApp);
@@ -1028,7 +1028,7 @@ describe('hyper-rest', function () {
                 }).returns({engine: viewEngine});
                 stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
 
-                viewsEngineFactory = proxyquire('../netup/express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
+                viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     helpers: helpers
                 });
                 viewsEngineFactory.attachTo(expressApp);
@@ -1041,7 +1041,7 @@ describe('hyper-rest', function () {
 
             beforeEach(function () {
                 appBaseDir = __dirname;
-                appBuilder = require('../netup/express/AppBuilder').begin(appBaseDir);
+                appBuilder = require('../express/AppBuilder').begin(appBaseDir);
             });
 
             it('设置网站根目录', function (done) {
@@ -1136,7 +1136,7 @@ describe('hyper-rest', function () {
                 update:function (source, state) {
                 }
             });
-            lifecycleFactory = require("../netup/app/Lifecycle")(stateRepositoryStub);
+            lifecycleFactory = require("../app/Lifecycle")(stateRepositoryStub);
 
             handlerSpy = sinon.spy();
             currentState = "draft";
