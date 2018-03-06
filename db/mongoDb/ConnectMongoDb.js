@@ -7,7 +7,7 @@ const mongoose = require('mongoose'),
 module.exports = function (onOpen) {
     mongoose.Promise = promise;
     mongoose.connect(process.env.MONGODB, {
-        useMongoClient: true,
+        //useMongoClient: true,
         /* other options */
     });
     mongoose.connection.on('open', onOpen);
