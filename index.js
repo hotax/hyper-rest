@@ -6,7 +6,7 @@ var logger = log4js.getLogger();
 
 module.exports = {
     boot: function (app) {
-        if(process.env.DEVELOPMENT){
+        if (process.env.DEVELOPMENT) {
             app();
             return;
         }
@@ -29,6 +29,16 @@ module.exports = {
         }
     },
     express: {
-        appBuilder: require('./express/AppBuilder')
+        appBuilder: require('./express/AppBuilder'),
+        handlebarsFactory: require('./express/HandlebarsFactory')
+    },
+    rests: {
+        directoryResourceDescriptorsLoader: require('./rests/DirectoryResourceDescriptorsLoader'),
+        resourceRegistry: require('./rests/ResourceRegistry')
+    },
+    db: {
+        mongoDb: {
+            connectMongoDb: require('./db/mongoDb/ConnectMongoDb')
+        }
     }
 }
