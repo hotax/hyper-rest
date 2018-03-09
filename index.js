@@ -34,7 +34,8 @@ module.exports = {
     },
     rests: {
         directoryResourceDescriptorsLoader: require('./rests/DirectoryResourceDescriptorsLoader'),
-        resourceRegistry: require('./rests/ResourceRegistry')
+        resourceRegistry: require('./rests/ResourceRegistry'),
+        baseTransitionGraph: require('./rests/BaseTransitionGraph')
     },
     db: {
         mongoDb: {
