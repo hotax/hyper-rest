@@ -39,7 +39,8 @@ module.exports = {
     },
     db: {
         mongoDb: {
-            connectMongoDb: require('./db/mongoDb/ConnectMongoDb')
+            connectMongoDb: require('./db/mongoDb/ConnectMongoDb'),
+            save: require('./db/mongoDb/SaveObjectToDb')
         }
     }
 }
