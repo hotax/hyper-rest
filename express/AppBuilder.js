@@ -45,6 +45,10 @@ module.exports.begin = function (base) {
         };
         return this;
     };
+    this.useMiddleware = function (uri, middleware) {
+        app.use(uri, middleware);
+        return this;
+    };
     this.end = function () {
         if (viewEngine) viewEngine.attachTo(app);
         if (__resourceRegistry) __resourceRegistry.attachTo(app);
