@@ -32,6 +32,10 @@ module.exports.begin = function (base) {
         viewEngine = engine;
         return this;
     };
+    this.setSessionStore = function (store) {
+        store.attachTo(app);
+        return this;
+    };
     this.setResources = function (resourceRegistry, resources) {
         __resourceRegistry = {
             attachTo: function (router) {

@@ -19,5 +19,8 @@ module.exports = {
             connectMongoDb: require('./db/mongoDb/ConnectMongoDb'),
             save: require('./db/mongoDb/SaveObjectToDb')
         }
+    },
+    session:{
+        mongoDb: require('./session/MongoDbSessionStore')
     }
 }
