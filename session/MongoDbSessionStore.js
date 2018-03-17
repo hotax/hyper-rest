@@ -1,11 +1,11 @@
 const session = require('express-session'),
     MongoDBStore = require('connect-mongodb-session')(session);
 
-module.exports = function () {
+module.exports = function (maxAge) {
     var store = new MongoDBStore(
         {
             uri: process.env.MONGODB,
-            collection: 'sessions'
+            collection: process.env.SESSION_COLLECTION || 'sessions'
         });
 
     // Catch errors
@@ -19,8 +19,9 @@ module.exports = function () {
             // Use express session support since OAuth2orize requires it
             app.use(session({
                 //cookie: {maxAge: 1000 * 60 * 60 * 24 * 7},// 1 week
-                cookie: {maxAge: 1000 * 60 * 60 * 24},// 1 day
-                secret: secret || 'super secret for session',
+                //cookie: {maxAge: 1000 * 60 * 60 * 24},// 1 day
+                cookie: {maxAge: maxAge || 1000 * 60 * 60 * 24},
+                secret: process.env.SESSION_SECRET || 'super secret for session',
                 saveUninitialized: false,
                 resave: false,
                 store: store
