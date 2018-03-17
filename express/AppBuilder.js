@@ -24,7 +24,8 @@ module.exports.begin = function (base) {
         return this;
     };
     this.setFavicon = function (faviconPathName) {
-        app.use(favicon(path.join(baseDir, faviconPathName)))
+        app.use(favicon(path.join(baseDir, faviconPathName)));
+        return this;
     };
     this.setViewEngine = function (engine) {
         viewEngine = engine;
