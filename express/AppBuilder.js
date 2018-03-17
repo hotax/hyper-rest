@@ -28,10 +28,6 @@ module.exports.begin = function (base) {
         app.use(favicon(path.join(baseDir, faviconPathName)));
         return this;
     };
-    this.setViews = function (viewsPath) {
-        app.set('views', viewsPath);
-        return this;
-    };
     this.setViewEngine = function (engine) {
         viewEngine = engine;
         return this;
