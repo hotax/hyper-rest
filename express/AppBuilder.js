@@ -40,8 +40,8 @@ module.exports.begin = function (base) {
         if (__resourceRegistry) __resourceRegistry.attachTo(app);
         return app;
     };
-    this.run = function (portNum, callback) {
-        var port = process.env.PORT || portNum;
+    this.run = function (callback) {
+        var port = process.env.PORT || 922;
         return app.listen(port, process.env.IP || "0.0.0.0", callback);
     };
 
