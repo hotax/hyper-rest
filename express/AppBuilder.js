@@ -49,6 +49,10 @@ module.exports.begin = function (base) {
         app.use(uri, middleware);
         return this;
     };
+    this.setRoutes = function (routes) {
+        routes.attachTo(app);
+        return this;
+    };
     this.end = function () {
         if (viewEngine) viewEngine.attachTo(app);
         if (__resourceRegistry) __resourceRegistry.attachTo(app);
