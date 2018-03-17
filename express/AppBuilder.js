@@ -15,6 +15,7 @@ var logger = log4js.getLogger();
 
 module.exports.begin = function (base) {
     var baseDir = base;
+    var defaultViewsPath = path.join(baseDir, 'client/views');
     var __resourceRegistry;
     var viewEngine;
 
@@ -25,6 +26,10 @@ module.exports.begin = function (base) {
     };
     this.setFavicon = function (faviconPathName) {
         app.use(favicon(path.join(baseDir, faviconPathName)));
+        return this;
+    };
+    this.setViews = function (viewsPath) {
+        app.set('views', viewsPath);
         return this;
     };
     this.setViewEngine = function (engine) {
@@ -62,6 +67,8 @@ module.exports.begin = function (base) {
             normalizeTags: false,
             trim: true
         }));
+
+        app.set('views', defaultViewsPath);
         app.set('trust proxy', 'loopback'); // 参考： Express behind proxies
     }
 }
