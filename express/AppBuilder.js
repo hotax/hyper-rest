@@ -4,6 +4,7 @@
 const util = require('util'),
     path = require('path'),
     morgan = require('morgan'),
+    favicon = require('serve-favicon'),
     bodyParser = require('body-parser'),
     xmlBodyParser = require('express-xml-bodyparser'),
     express = require('express'),
@@ -13,7 +14,7 @@ var log4js = require('log4js');
 var logger = log4js.getLogger();
 
 module.exports.begin = function (base) {
-    var baseDir = base || __dirname;
+    var baseDir = base;
     var __resourceRegistry;
     var viewEngine;
 
@@ -21,6 +22,9 @@ module.exports.begin = function (base) {
     this.setWebRoot = function (root, dir) {
         app.use(root, express.static(path.join(baseDir, dir)));
         return this;
+    };
+    this.setFavicon = function (faviconPathName) {
+        app.use(favicon(path.join(baseDir, faviconPathName)))
     };
     this.setViewEngine = function (engine) {
         viewEngine = engine;
