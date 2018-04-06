@@ -18,7 +18,8 @@ module.exports = {
         mongoDb: {
             connectMongoDb: require('./db/mongoDb/ConnectMongoDb'),
             save: require('./db/mongoDb/SaveObjectToDb'),
-            clearDB: require('./db/mongoDb/clearDB')
+            clearDB: require('./db/mongoDb/clearDB'),
+            transform: require('./db/mongoDb/DocTransformOption')
         }
     },
     session:{
