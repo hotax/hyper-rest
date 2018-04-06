@@ -17,7 +17,8 @@ module.exports = {
     db: {
         mongoDb: {
             connectMongoDb: require('./db/mongoDb/ConnectMongoDb'),
-            save: require('./db/mongoDb/SaveObjectToDb')
+            save: require('./db/mongoDb/SaveObjectToDb'),
+            clearDB: require('./db/mongoDb/clearDB')
         }
     },
     session:{
