@@ -59,7 +59,7 @@ module.exports.begin = function (base) {
         return app;
     };
     this.run = function (callback) {
-        var port = process.env.PORT || 922;
+        var port = process.env.PORT || 80;
         return app.listen(port, callback);
     };
 
