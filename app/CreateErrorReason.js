@@ -1,6 +1,8 @@
 module.exports = function (code, msg) {
     return {
-        code: code,
-        msg: msg
+        sendStatusTo: function (res) {
+            res.status(code);
+            res.send(msg);
+        }
     }
 }

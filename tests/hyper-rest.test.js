@@ -15,17 +15,22 @@ describe('hyper-rest', function () {
 
     describe('出错原因', function () {
         var createErrorReason, code, msg;
+        var res, statusMock, sendMock;
         beforeEach(function () {
             createErrorReason = require('../app/CreateErrorReason');
+            res = {
+                status: sinon.spy(),
+                send: sinon.spy()
+            }
         });
 
-        it('正确创建', function () {
+        it('可设置express响应', function () {
             code = 404;
             msg = "foo msg";
-            expect(createErrorReason(code, msg)).eqls({
-                code: code,
-                msg: msg
-            })
+            var reason = createErrorReason(code, msg);
+            reason.sendStatusTo(res);
+            expect(res.status.calledWith(code))
+            expect(res.send.calledWith(msg))
         })
     });
 
