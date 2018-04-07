@@ -35,11 +35,10 @@ describe('hyper-rest', function () {
     });
 
     describe('同数据库相关部件', function () {
-        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function (done) {
+        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
             connectDb(function () {
-                done();
             });
         });
 
@@ -197,6 +196,33 @@ describe('hyper-rest', function () {
                         done();
                     })
             })
+        });
+
+        describe('数据库', function () {
+            var dbSave, model;
+            beforeEach(function (done) {
+                mongoose.Promise = global.Promise;
+                clearDB(done);
+            });
+
+            it('Db object saver', function () {
+                var dbSchema = new mongoose.Schema({
+                    "foo": String,
+                    "fee": String
+                });
+                model = mongoose.model('coll', dbSchema);
+
+                dataToAdd = {foo: "foo", fee: "fee"};
+                dbSave = require('../db/mongoDb/SaveObjectToDb');
+                return dbSave(model, dataToAdd)
+                    .then(function (data) {
+                        expect(data).not.null;
+                        return model.find()
+                    })
+                    .then(function (data) {
+                        expect(data.length).eqls(1);
+                    })
+            });
         })
     });
 
