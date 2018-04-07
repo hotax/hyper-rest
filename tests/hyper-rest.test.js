@@ -13,6 +13,22 @@ describe('hyper-rest', function () {
         err = new Error('any error message');
     });
 
+    describe('出错原因', function () {
+        var createErrorReason, code, msg;
+        beforeEach(function () {
+            createErrorReason = require('../app/CreateErrorReason');
+        });
+
+        it('正确创建', function () {
+            code = 404;
+            msg = "foo msg";
+            expect(createErrorReason(code, msg)).eqls({
+                code: code,
+                msg: msg
+            })
+        })
+    });
+
     describe('同数据库相关部件', function () {
         it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function (done) {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
@@ -1082,7 +1098,7 @@ describe('hyper-rest', function () {
                 expect(attachSpy).calledWith(app, 'fee', feeResourceDesc);
             });
 
-            describe('运行服务器', function () {
+            xdescribe('运行服务器', function () {
                 const superagent = require('superagent');
                 var server, port;
 
@@ -1113,7 +1129,7 @@ describe('hyper-rest', function () {
                 }
 
                 it('运行一个缺省的Server', function (done) {
-                    runAndCheckServer(port, 'http://localhost:' + port + '/staticResource.json', done);
+                    runAndCheckServer(port, 'http://0.0.0.0:' + port + '/staticResource.json', done);
                 });
 
                 it('系统管理员可以通过设置Node.js运行环境变量设定端口号', function (done) {
@@ -1124,7 +1140,7 @@ describe('hyper-rest', function () {
         });
     });
 
-    describe("生命周期", function () {
+    xdescribe("生命周期", function () {
         var lifecycleFactory, stateRepositoryStub;
         var fsm, lifecycle, event, source, data, handlerSpy, currentState;
         beforeEach(function () {
