@@ -65,7 +65,14 @@ describe('hyper-rest', function () {
                     .then(function (data) {
                         expect(data).eqls(require('mongodb').ObjectID('5ac0c25b0f72e70cd9d065b0'));
                     })
+            });
 
+            it('仅仅检查合法性不转化为ObjectId', function () {
+                func = require('../db/mongoDb/CreateObjectId');
+                return func('5ac0c25b0f72e70cd9d065b0', false)
+                    .then(function (data) {
+                        expect(data).eqls('5ac0c25b0f72e70cd9d065b0');
+                    })
             })
         });
 
