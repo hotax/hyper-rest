@@ -7,10 +7,12 @@ var proxyquire = require('proxyquire'),
     Schema = mongoose.Schema;
 
 describe('hyper-rest', function () {
-    var stubs, err;
+    var func, stubs, err, reason, createReasonMock;
     beforeEach(function () {
         stubs = {};
         err = new Error('any error message');
+        reason = {reason: 'any reason representing any error'}
+        createReasonMock = {createErrorReason: sinon.stub()};
     });
 
     describe('出错原因', function () {
@@ -40,6 +42,28 @@ describe('hyper-rest', function () {
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
             connectDb(function () {
             });
+        });
+
+        describe('createObjectId', function () {
+
+            it('非法标识', function () {
+                createReasonMock.createErrorReason.returns(reason);
+                stubs['../../app'] = createReasonMock;
+                func = proxyquire('../db/mongoDb/CreateObjectId', stubs);
+                return func('1234')
+                    .then(function () {
+                        throw 'failed';
+                    })
+                    .catch(function (err) {
+                        expect(reason).eqls(err);
+                    })
+            });
+
+            it('合法标识', function () {
+                func = require('../db/mongoDb/CreateObjectId');
+                expect(func('5ac0c25b0f72e70cd9d065b0'))
+                    .eqls(require('mongodb').ObjectID('5ac0c25b0f72e70cd9d065b0'));
+            })
         });
 
         describe('分页查询工厂', function () {
