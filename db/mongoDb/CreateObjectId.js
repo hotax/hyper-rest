@@ -4,7 +4,7 @@ const logger = require('../../app/Logger'),
 
 module.exports = function (id) {
     try {
-        return ObjectID(id);
+        return Promise.resolve(ObjectID(id));
     }
     catch (err) {
         logger.error(err.stack);

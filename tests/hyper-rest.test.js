@@ -61,8 +61,11 @@ describe('hyper-rest', function () {
 
             it('合法标识', function () {
                 func = require('../db/mongoDb/CreateObjectId');
-                expect(func('5ac0c25b0f72e70cd9d065b0'))
-                    .eqls(require('mongodb').ObjectID('5ac0c25b0f72e70cd9d065b0'));
+                return func('5ac0c25b0f72e70cd9d065b0')
+                    .then(function (data) {
+                        expect(data).eqls(require('mongodb').ObjectID('5ac0c25b0f72e70cd9d065b0'));
+                    })
+
             })
         });
 
