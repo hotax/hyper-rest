@@ -4,9 +4,10 @@
 const mongoose = require('mongoose'),
     promise = require('bluebird');
 
-module.exports = function (onOpen) {
+module.exports = function (onOpen, connStr) {
     mongoose.Promise = promise;
-    mongoose.connect(process.env.MONGODB, {
+    connStr = connStr || process.env.MONGODB;
+    mongoose.connect(connStr, {
         //useMongoClient: true,
         /* other options */
     });
