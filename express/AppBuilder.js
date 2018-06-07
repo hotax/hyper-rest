@@ -9,24 +9,25 @@ const path = require('path'),
     express = require('express'),
     app = express();
 
-const initappobject = function() {
-    app.use(morgan('dev')); // used as logger
-    app.use(bodyParser.urlencoded({extended: true}));
-    app.use(bodyParser.json());
-    app.use(xmlBodyParser({
-        explicitArray: false,
-        normalize: false,
-        normalizeTags: false,
-        trim: true
-    }));
-
-    app.set('views', defaultViewsPath);
-    app.set('trust proxy', 'loopback'); // 参考： Express behind proxies
-};
-
 module.exports.begin = function (base) {
+    var defaultViewsPath = path.join(base, 'client/views');
     var __resourceRegistry;
     var viewEngine;
+
+    function initappobject(){
+        app.use(morgan('dev')); // used as logger
+        app.use(bodyParser.urlencoded({extended: true}));
+        app.use(bodyParser.json());
+        app.use(xmlBodyParser({
+            explicitArray: false,
+            normalize: false,
+            normalizeTags: false,
+            trim: true
+        }));
+
+        app.set('views', defaultViewsPath);
+        app.set('trust proxy', 'loopback'); // 参考： Express behind proxies
+    }
 
     initappobject();
     var appBuilder = {
