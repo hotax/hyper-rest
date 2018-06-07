@@ -187,6 +187,9 @@ const __entryHandler = function (context, restDesc, req, res) {
             return res.status(500).send(err);
         })
 };
+const  __getHandler = function (context, restDesc, req, res) {
+    return restDesc.handler(req, res);
+};
 
 const handlerMap = {
     entry: {method: "get", handler: __entryHandler},
@@ -194,7 +197,8 @@ const handlerMap = {
     update: {method: "put", handler: __updateHandler},
     delete: {method: "delete", handler: __deleteHandler},
     query: {method: "get", handler: __queryHandler},
-    read: {method: "get", handler: __readHandler}
+    read: {method: "get", handler: __readHandler},
+    get: {method: "get", handler: __getHandler}
 };
 
 module.exports = {
