@@ -10,9 +10,6 @@ const util = require('util'),
     express = require('express'),
     app = express();
 
-var log4js = require('log4js');
-var logger = log4js.getLogger();
-
 module.exports.begin = function (base) {
     var baseDir = base;
     var defaultViewsPath = path.join(baseDir, 'client/views');
@@ -20,50 +17,51 @@ module.exports.begin = function (base) {
     var viewEngine;
 
     initappobject();
-    this.setWebRoot = function (root, dir) {
-        app.use(root, express.static(path.join(baseDir, dir)));
-        return this;
+    var appBuilder = {
+        setWebRoot: function (root, dir) {
+            app.use(root, express.static(path.join(baseDir, dir)));
+            return appBuilder;
+        },
+        setFavicon: function (faviconPathName) {
+            app.use(favicon(path.join(baseDir, faviconPathName)));
+            return appBuilder;
+        },
+        setViewEngine: function (engine) {
+            viewEngine = engine;
+            return appBuilder;
+        },
+        setSessionStore: function (store) {
+            store.attachTo(app);
+            return appBuilder;
+        },
+        setResources: function (resourceRegistry, resources) {
+            __resourceRegistry = {
+                attachTo: function (router) {
+                    for (var id in resources)
+                        resourceRegistry.attach(router, id, resources[id]);
+                }
+            };
+            return appBuilder;
+        },
+        useMiddleware: function (uri, middleware) {
+            app.use(uri, middleware);
+            return appBuilder;
+        },
+        setRoutes: function (routes) {
+            routes.attachTo(app);
+            return appBuilder;
+        },
+        end: function () {
+            if (viewEngine) viewEngine.attachTo(app);
+            if (__resourceRegistry) __resourceRegistry.attachTo(app);
+            return app;
+        },
+        run: function (callback) {
+            var port = process.env.PORT || 80;
+            return app.listen(port, callback);
+        }
     };
-    this.setFavicon = function (faviconPathName) {
-        app.use(favicon(path.join(baseDir, faviconPathName)));
-        return this;
-    };
-    this.setViewEngine = function (engine) {
-        viewEngine = engine;
-        return this;
-    };
-    this.setSessionStore = function (store) {
-        store.attachTo(app);
-        return this;
-    };
-    this.setResources = function (resourceRegistry, resources) {
-        __resourceRegistry = {
-            attachTo: function (router) {
-                for (var id in resources)
-                    resourceRegistry.attach(router, id, resources[id]);
-            }
-        };
-        return this;
-    };
-    this.useMiddleware = function (uri, middleware) {
-        app.use(uri, middleware);
-        return this;
-    };
-    this.setRoutes = function (routes) {
-        routes.attachTo(app);
-        return this;
-    };
-    this.end = function () {
-        if (viewEngine) viewEngine.attachTo(app);
-        if (__resourceRegistry) __resourceRegistry.attachTo(app);
-        return app;
-    };
-    this.run = function (callback) {
-        var port = process.env.PORT || 80;
-        return app.listen(port, callback);
-    };
-
-    return this;
+    return appBuilder;
 
     function initappobject() {
         app.use(morgan('dev')); // used as logger
