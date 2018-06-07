@@ -1,8 +1,7 @@
 /**
  * Created by clx on 2017/10/9.
  */
-const util = require('util'),
-    path = require('path'),
+const path = require('path'),
     morgan = require('morgan'),
     favicon = require('serve-favicon'),
     bodyParser = require('body-parser'),
@@ -10,20 +9,36 @@ const util = require('util'),
     express = require('express'),
     app = express();
 
+const initappobject = function() {
+    app.use(morgan('dev')); // used as logger
+    app.use(bodyParser.urlencoded({extended: true}));
+    app.use(bodyParser.json());
+    app.use(xmlBodyParser({
+        explicitArray: false,
+        normalize: false,
+        normalizeTags: false,
+        trim: true
+    }));
+
+    app.set('views', defaultViewsPath);
+    app.set('trust proxy', 'loopback'); // 参考： Express behind proxies
+};
+
 module.exports.begin = function (base) {
-    var baseDir = base;
-    var defaultViewsPath = path.join(baseDir, 'client/views');
     var __resourceRegistry;
     var viewEngine;
 
     initappobject();
     var appBuilder = {
+        getApp: function () {
+            return app;
+        },
         setWebRoot: function (root, dir) {
-            app.use(root, express.static(path.join(baseDir, dir)));
+            app.use(root, express.static(path.join(base, dir)));
             return appBuilder;
         },
         setFavicon: function (faviconPathName) {
-            app.use(favicon(path.join(baseDir, faviconPathName)));
+            app.use(favicon(path.join(base, faviconPathName)));
             return appBuilder;
         },
         setViewEngine: function (engine) {
@@ -54,7 +69,7 @@ module.exports.begin = function (base) {
         end: function () {
             if (viewEngine) viewEngine.attachTo(app);
             if (__resourceRegistry) __resourceRegistry.attachTo(app);
-            return app;
+            return appBuilder;
         },
         run: function (callback) {
             var port = process.env.PORT || 80;
@@ -62,19 +77,4 @@ module.exports.begin = function (base) {
         }
     };
     return appBuilder;
-
-    function initappobject() {
-        app.use(morgan('dev')); // used as logger
-        app.use(bodyParser.urlencoded({extended: true}));
-        app.use(bodyParser.json());
-        app.use(xmlBodyParser({
-            explicitArray: false,
-            normalize: false,
-            normalizeTags: false,
-            trim: true
-        }));
-
-        app.set('views', defaultViewsPath);
-        app.set('trust proxy', 'loopback'); // 参考： Express behind proxies
-    }
-}
+};
