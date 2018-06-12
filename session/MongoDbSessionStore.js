@@ -49,8 +49,8 @@ module.exports = function (maxAge) {
                     secure: process.env.NODE_ENV === 'production'
                 },
                 secret: SESSION_SECRET,
-                saveUninitialized: false,
-                resave: false,
+                saveUninitialized: true,
+                resave: true,
                 store: store
             }));
         },
