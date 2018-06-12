@@ -4,6 +4,7 @@
 const path = require('path'),
     morgan = require('morgan'),
     favicon = require('serve-favicon'),
+    cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     xmlBodyParser = require('express-xml-bodyparser'),
     express = require('express'),
@@ -14,8 +15,9 @@ module.exports.begin = function (base) {
     var __resourceRegistry;
     var viewEngine;
 
-    function initappobject(){
+    function initappobject() {
         app.use(morgan('dev')); // used as logger
+        app.use(cookieParser(process.env.SESSION_SECRET));
         app.use(bodyParser.urlencoded({extended: true}));
         app.use(bodyParser.json());
         app.use(xmlBodyParser({
