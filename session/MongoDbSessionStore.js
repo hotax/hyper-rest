@@ -39,6 +39,7 @@ module.exports = function (maxAge) {
             }));
         },
         authByServer: function (server) {
+            logger.info('begin auth by server .......');
             const io = SocketIo(server);
             io.use(PassportSocketIo.authorize({
                 cookieParser: cookieParser,
