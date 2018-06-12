@@ -22,8 +22,8 @@ module.exports = function (maxAge) {
                 //cookie: {maxAge: 1000 * 60 * 60 * 24},// 1 day
                 cookie: {maxAge: maxAge || 1000 * 60 * 60 * 24},
                 secret: process.env.SESSION_SECRET || 'super secret for session',
-                saveUninitialized: false,
-                resave: false,
+                saveUninitialized: true,
+                resave: true,
                 store: store
             }));
         }
