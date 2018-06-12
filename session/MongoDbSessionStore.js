@@ -8,6 +8,22 @@ const session = require('express-session'),
     logger = require('../app/Logger'),
     MongoDBStore = require('connect-mongodb-session')(session);
 
+const onAuthorizeSuccess = function(data, accept){
+    logger.info('socket.io auth success');
+    accept();
+};
+
+const onAuthorizeFail = function(data, message, error, accept){
+    // error indicates whether the fail is due to an error or just a unauthorized client
+    if(error){
+        throw new Error(message);
+    } else {
+        logger.info(message);
+        // the same accept-method as above in the success-callback
+        accept(null, false);
+    }
+};
+
 module.exports = function (maxAge) {
     var store = new MongoDBStore(
         {
@@ -46,11 +62,9 @@ module.exports = function (maxAge) {
                 key: KEY,
                 secret: SESSION_SECRET,
                 store: store,
-                success: function (data, accept) {
-                    logger.info('socket.io auth success');
-                    accept()
-                }
+                success: onAuthorizeSuccess,
+                fail: onAuthorizeFail
             }))
         }
     };
-}
+};
