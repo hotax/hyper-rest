@@ -27,28 +27,27 @@ const onAuthorizeFail = function (data, message, error, accept) {
     }
 };
 
+const sso = {
+    uri: DB_CONNECTION_STRING
+};
+logger.debug('session store creative options:' + JSON.stringify(sso));
+const sessionStore = new MongoDBStore(sso);
+const sessionOptions = {
+    genid: function () {
+        return uuid();
+    },
+    key: KEY,
+    secret: SECRET,
+    resave: true,
+    saveUninitialized: true,
+    cookie: {
+        maxAge: maxAge || 3 * 60 * 60 * 1000,
+        secure: COOKIE_SECURE
+    },
+    store: sessionStore
+};
 
 module.exports = function (maxAge) {
-    const sso = {
-        uri: DB_CONNECTION_STRING
-    };
-    logger.debug('session store creative options:' + JSON.stringify(sso));
-    const sessionStore = new MongoDBStore(sso);
-    const sessionOptions = {
-        genid: function () {
-            return uuid();
-        },
-        key: KEY,
-        secret: SECRET,
-        resave: true,
-        saveUninitialized: true,
-        cookie: {
-            maxAge: maxAge || 3 * 60 * 60 * 1000,
-            secure: COOKIE_SECURE
-        },
-        store: sessionStore
-    };
-
     return {
         attachTo: function (app) {
             app.use(cookieParser(SECRET));
