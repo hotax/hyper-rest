@@ -5,6 +5,9 @@ const session = require('express-session'),
     PassportSocketIo = require('passport.socketio'),
     KEY = 'express.sid',
     SECRET = process.env.SESSION_SECRET || 'super secret for session',
+    DB_CONNECTION_STRING = process.env.MONGODB,
+    SESSION_COLLECTION = process.env.SESSION_COLLECTION || 'sessions',
+    COOKIE_SECURE = process.env.NODE_ENV === 'production',
     logger = require('../app/Logger'),
     MongoDBStore = require('connect-mongo')(session);
 
@@ -24,11 +27,12 @@ const onAuthorizeFail = function (data, message, error, accept) {
     }
 };
 
+
 module.exports = function (maxAge) {
     const sessionStore = new MongoDBStore(
         {
-            uri: process.env.MONGODB,
-            collection: process.env.SESSION_COLLECTION || 'sessions'
+            uri: DB_CONNECTION_STRING,
+            collection: SESSION_COLLECTION
         });
     const sessionOptions = {
         genid: function () {
@@ -39,8 +43,8 @@ module.exports = function (maxAge) {
         resave: true,
         saveUninitialized: true,
         cookie: {
-            maxAge: 3 * 60 * 60 * 1000,
-            secure: process.env.NODE_ENV === 'production'
+            maxAge: maxAge || 3 * 60 * 60 * 1000,
+            secure: COOKIE_SECURE
         },
         store: sessionStore
     };
