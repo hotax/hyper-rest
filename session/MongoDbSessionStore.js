@@ -29,11 +29,11 @@ const onAuthorizeFail = function (data, message, error, accept) {
 
 
 module.exports = function (maxAge) {
-    const sessionStore = new MongoDBStore(
-        {
-            uri: DB_CONNECTION_STRING,
-            collection: SESSION_COLLECTION
-        });
+    const sso = {
+        uri: DB_CONNECTION_STRING
+    };
+    logger.debug('session store creative options:' + JSON.stringify(sso));
+    const sessionStore = new MongoDBStore(sso);
     const sessionOptions = {
         genid: function () {
             return uuid();
