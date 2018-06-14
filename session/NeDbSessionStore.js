@@ -58,7 +58,7 @@ module.exports = function (options) {
                 store: sessionStore,
                 success: onAuthorizeSuccess,
                 fail: onAuthorizeFail
-            }))
+            }));
         }
     };
 };
