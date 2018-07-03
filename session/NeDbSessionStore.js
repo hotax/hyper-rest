@@ -28,7 +28,7 @@ const onAuthorizeFail = function(data, message, error, accept){
 module.exports = function (options) {
     const NedbSessionStore = NedbStore(session);
     const sessionStore = new NedbSessionStore({
-        filename: path.join('./db', 'session-store.db')
+        filename: path.join(options.dbDir || './db', 'session-store.db')
     });
     const sessionOptions = {
         genid: function () {
