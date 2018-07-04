@@ -27,7 +27,6 @@ module.exports = {
         logger.debug('Dest resource Id: ' + destResourceId);
         logger.debug('__resources: ' + JSON.stringify(__resources).toString());
         logger.debug('the resource content is: ' + JSON.stringify(__resources[destResourceId]).toString());
-
         return __resources[destResourceId].getUrl(resourceId, context, req);
     },
 
