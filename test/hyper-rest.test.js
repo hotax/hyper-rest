@@ -11,8 +11,12 @@ describe('hyper-rest', function () {
     beforeEach(function () {
         stubs = {};
         err = new Error('any error message');
-        reason = {reason: 'any reason representing any error'}
-        createReasonMock = {createErrorReason: sinon.stub()};
+        reason = {
+            reason: 'any reason representing any error'
+        }
+        createReasonMock = {
+            createErrorReason: sinon.stub()
+        };
     });
 
     describe('出错原因', function () {
@@ -40,8 +44,7 @@ describe('hyper-rest', function () {
         it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
-            connectDb(function () {
-            });
+            connectDb(function () {});
         });
 
         describe('createObjectId', function () {
@@ -84,23 +87,21 @@ describe('hyper-rest', function () {
             beforeEach(function () {
                 execStub = sinon.stub();
                 Schema = {
-                    find: function () {
-                    },
-                    select: function () {
-                    },
-                    limit: function () {
-                    },
-                    skip: function () {
-                    },
-                    sort: function () {
-                    },
-                    count: function () {
-                    },
+                    find: function () {},
+                    select: function () {},
+                    limit: function () {},
+                    skip: function () {},
+                    sort: function () {},
+                    count: function () {},
                     exec: execStub
                 };
                 SchemaMock = sinon.mock(Schema);
 
-                dbdata = [{data: 'foo'}, {data: 'fee'}];
+                dbdata = [{
+                    data: 'foo'
+                }, {
+                    data: 'fee'
+                }];
                 countNum = 300;
                 expectedData = {
                     items: dbdata,
@@ -116,7 +117,9 @@ describe('hyper-rest', function () {
                 SchemaMock.expects('count').withArgs().once().returns(Schema);
                 paginatingQuery = require('../db/mongoDb/PaginatingQuery');
 
-                options = {schema: Schema}
+                options = {
+                    schema: Schema
+                }
             });
 
             it('未指定查询选项', function () {
@@ -145,7 +148,9 @@ describe('hyper-rest', function () {
             });
 
             it('指定查询条件', function (done) {
-                var queryconditions = {conditions: 'any query conditions'};
+                var queryconditions = {
+                    conditions: 'any query conditions'
+                };
                 SchemaMock.expects('find').withArgs(queryconditions).once().returns(Schema);
                 SchemaMock.expects('limit').withArgs(10).once().returns(Schema);
                 SchemaMock.expects('skip').withArgs(0).once().returns(Schema);
@@ -246,7 +251,10 @@ describe('hyper-rest', function () {
                 });
                 model = mongoose.model('coll', dbSchema);
 
-                dataToAdd = {foo: "foo", fee: "fee"};
+                dataToAdd = {
+                    foo: "foo",
+                    fee: "fee"
+                };
                 dbSave = require('../db/mongoDb/SaveObjectToDb');
                 return dbSave(model, dataToAdd)
                     .then(function (data) {
@@ -263,14 +271,10 @@ describe('hyper-rest', function () {
     describe('Restful', function () {
 
         describe('基于目录内资源描述文件的资源加载器', function () {
-            var loader;
-
-            beforeEach(function () {
-            });
+            const loader = require('../rests/DirectoryResourceDescriptorsLoader');
 
             it('加载一个资源描述', function () {
                 var fooDesc = require('./data/rests/foo');
-                loader = require('../rests/DirectoryResourceDescriptorsLoader');
                 expect(loader.loadFrom(path.join(__dirname, './data/rests'))).eql({
                     foo: fooDesc
                 });
@@ -278,34 +282,31 @@ describe('hyper-rest', function () {
         });
 
         describe('对Rest服务的解析', function () {
-            var requestAgent, app, request;
+            const bodyParser = require('body-parser'), 
+            requestAgent = require('supertest'),
+            app = require('express')(),
+            request = requestAgent(app);
+
             var url, desc, currentResource;
             var selfUrl, urlResolveStub, restDescriptor;
 
             beforeEach(function () {
                 url = '/rests/foo';
-                var bodyParser = require('body-parser');
-                requestAgent = require('supertest');
-                app = require('express')();
-                request = requestAgent(app);
                 app.use(bodyParser.json());
-
                 err = "any error ...."
                 currentResource = {
-                    getResourceId: function () {
-                    },
-                    getUrl: function () {
-                    },
-                    getTransitionUrl: function () {
-                    },
-                    getLinks: function () {
-                    }
+                    getResourceId: function () {},
+                    getUrl: function () {},
+                    getTransitionUrl: function () {},
+                    getLinks: function () {}
                 };
                 currentResource = sinon.stub(currentResource);
 
                 selfUrl = '/rests/foo/self';
                 urlResolveStub = sinon.stub();
-                stubs['../express/Url'] = {resolve: urlResolveStub};
+                stubs['../express/Url'] = {
+                    resolve: urlResolveStub
+                };
                 restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
             });
 
@@ -318,9 +319,14 @@ describe('hyper-rest', function () {
                 });
 
                 it('正确响应', function (done) {
-                    var expectedLinks = [
-                        {rel: 'rel1', href: '/href1'},
-                        {rel: 'rel2', href: '/href2'}
+                    var expectedLinks = [{
+                            rel: 'rel1',
+                            href: '/href1'
+                        },
+                        {
+                            rel: 'rel2',
+                            href: '/href2'
+                        }
                     ];
                     currentResource.getLinks.returns(Promise.resolve(expectedLinks));
 
@@ -342,7 +348,10 @@ describe('hyper-rest', function () {
                 var elementResourceId, reqQuery, searchStub, resultCollection;
 
                 beforeEach(function () {
-                    reqQuery = {arg1: "aaa", arg2: 'bbb'};
+                    reqQuery = {
+                        arg1: "aaa",
+                        arg2: 'bbb'
+                    };
                     elementResourceId = "fuuuuuu";
                     searchStub = sinon.stub();
 
@@ -357,8 +366,16 @@ describe('hyper-rest', function () {
 
                 it('正确响应', function (done) {
                     var queryStr = "?arg1=aaa&arg2=bbb";
-                    var element1 = {id: '001', foo: 'foo 1', fee: 'fee 1'};
-                    var element2 = {id: '002', foo: 'foo 2', fee: 'fee 2'};
+                    var element1 = {
+                        id: '001',
+                        foo: 'foo 1',
+                        fee: 'fee 1'
+                    };
+                    var element2 = {
+                        id: '002',
+                        foo: 'foo 2',
+                        fee: 'fee 2'
+                    };
                     resultCollection = {
                         items: [element1, element2],
                         perpage: 10,
@@ -367,9 +384,14 @@ describe('hyper-rest', function () {
                     };
                     searchStub.withArgs(reqQuery).returns(Promise.resolve(resultCollection));
 
-                    var expectedLinks = [
-                        {rel: 'rel1', href: '/href1'},
-                        {rel: 'rel2', href: '/href2'}
+                    var expectedLinks = [{
+                            rel: 'rel1',
+                            href: '/href1'
+                        },
+                        {
+                            rel: 'rel2',
+                            href: '/href2'
+                        }
                     ];
                     currentResource.getLinks
                         .callsFake(function (context, req) {
@@ -402,14 +424,25 @@ describe('hyper-rest', function () {
                         .expect(200, {
                             collection: {
                                 href: selfUrl,
-                                items: [
-                                    {
-                                        link: {rel: elementResourceId, href: refElement1},
-                                        data: {foo: 'foo 1', fee: 'fee 1'}
+                                items: [{
+                                        link: {
+                                            rel: elementResourceId,
+                                            href: refElement1
+                                        },
+                                        data: {
+                                            foo: 'foo 1',
+                                            fee: 'fee 1'
+                                        }
                                     },
                                     {
-                                        link: {rel: elementResourceId, href: refElement2},
-                                        data: {foo: 'foo 2', fee: 'fee 2'}
+                                        link: {
+                                            rel: elementResourceId,
+                                            href: refElement2
+                                        },
+                                        data: {
+                                            foo: 'foo 2',
+                                            fee: 'fee 2'
+                                        }
                                     }
                                 ],
                                 perpage: 10,
@@ -443,7 +476,9 @@ describe('hyper-rest', function () {
                 });
 
                 it('正确响应', function (done) {
-                    reqBody = {foo: "any request data used to create object"};
+                    reqBody = {
+                        foo: "any request data used to create object"
+                    };
                     objCreated = {
                         __id: 'fooid',
                         foo: 'foo',
@@ -451,9 +486,14 @@ describe('hyper-rest', function () {
                     };
                     createStub.withArgs(reqBody).returns(Promise.resolve(objCreated));
 
-                    var expectedLinks = [
-                        {rel: 'rel1', href: '/href1'},
-                        {rel: 'rel2', href: '/href2'}
+                    var expectedLinks = [{
+                            rel: 'rel1',
+                            href: '/href1'
+                        },
+                        {
+                            rel: 'rel2',
+                            href: '/href2'
+                        }
                     ];
                     currentResource.getLinks
                         .callsFake(function (context, req) {
@@ -513,9 +553,14 @@ describe('hyper-rest', function () {
                     };
                     handlerStub.returns(Promise.resolve(objRead));
 
-                    var expectedLinks = [
-                        {rel: 'rel1', href: '/href1'},
-                        {rel: 'rel2', href: '/href2'}
+                    var expectedLinks = [{
+                            rel: 'rel1',
+                            href: '/href1'
+                        },
+                        {
+                            rel: 'rel2',
+                            href: '/href2'
+                        }
                     ];
                     currentResource.getLinks
                         .callsFake(function (context, req) {
@@ -565,10 +610,8 @@ describe('hyper-rest', function () {
                 var handler, id, version, body, doc, modifiedDate;
                 beforeEach(function () {
                     handler = sinon.stub({
-                        condition: function (id, version) {
-                        },
-                        handle: function (doc, body) {
-                        }
+                        condition: function (id, version) {},
+                        handle: function (doc, body) {}
                     });
                     desc = {
                         type: 'update',
@@ -578,8 +621,12 @@ describe('hyper-rest', function () {
                     id = "foo";
                     version = "12345df";
                     modifiedDate = new Date(2017, 11, 11);
-                    body = {body: "any data to update"};
-                    doc = {doc: "doc identified by id"};
+                    body = {
+                        body: "any data to update"
+                    };
+                    doc = {
+                        doc: "doc identified by id"
+                    };
                     restDescriptor.attach(app, currentResource, url, desc);
                 });
 
@@ -682,10 +729,8 @@ describe('hyper-rest', function () {
                 var handler, id, version;
                 beforeEach(function () {
                     handler = sinon.stub({
-                        condition: function (id, version) {
-                        },
-                        handle: function (id, version) {
-                        }
+                        condition: function (id, version) {},
+                        handle: function (id, version) {}
                     });
                     desc = {
                         type: 'delete',
@@ -778,7 +823,9 @@ describe('hyper-rest', function () {
 
             beforeEach(function () {
                 resourceId = 'foo';
-                dataToRepresent = {data: 'any data'};
+                dataToRepresent = {
+                    data: 'any data'
+                };
                 router = require('express')();
                 request = require('supertest')(router);
                 url = '/rests/foo';
@@ -786,7 +833,9 @@ describe('hyper-rest', function () {
                     return dataToRepresent;
                 };
 
-                restDesc = {rest: 'any rest descriptor'};
+                restDesc = {
+                    rest: 'any rest descriptor'
+                };
 
                 desc = {
                     url: url,
@@ -794,7 +843,9 @@ describe('hyper-rest', function () {
                 }
 
                 attachSpy = sinon.spy();
-                stubs['./RestDescriptor'] = {attach: attachSpy};
+                stubs['./RestDescriptor'] = {
+                    attach: attachSpy
+                };
                 resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
             });
 
@@ -825,7 +876,9 @@ describe('hyper-rest', function () {
 
                     expectedUrl = "/expected/url";
                     urlResolveStub = sinon.stub();
-                    stubs['../express/Url'] = {resolve: urlResolveStub};
+                    stubs['../express/Url'] = {
+                        resolve: urlResolveStub
+                    };
                 });
 
                 it('无路径变量', function () {
@@ -888,7 +941,9 @@ describe('hyper-rest', function () {
                 var expectedUrl = "/expected/url";
                 var urlResolveStub = sinon.stub();
                 urlResolveStub.withArgs(req, '/url/fee').returns(expectedUrl);
-                stubs['../express/Url'] = {resolve: urlResolveStub};
+                stubs['../express/Url'] = {
+                    resolve: urlResolveStub
+                };
                 resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                 var fooResource = resourceRegistry.attach(router, 'foo', fooDesc);
@@ -898,13 +953,25 @@ describe('hyper-rest', function () {
             });
 
             it('获得当前资源状态下的迁移链接列表', function () {
-                var req = {reg: 'any request'};
-                var context = {context: 'any context'};
-                var links = [{rel: "foo", href: "/foo"}, {rel: "fee", href: "/fee"}];
+                var req = {
+                    reg: 'any request'
+                };
+                var context = {
+                    context: 'any context'
+                };
+                var links = [{
+                    rel: "foo",
+                    href: "/foo"
+                }, {
+                    rel: "fee",
+                    href: "/fee"
+                }];
                 var getLinksStub = createPromiseStub([resourceId, context, req], [links]);
 
                 resourceRegistry = require('../rests/ResourceRegistry');
-                resourceRegistry.setTransitionGraph({getLinks: getLinksStub});
+                resourceRegistry.setTransitionGraph({
+                    getLinks: getLinksStub
+                });
                 var resource = resourceRegistry.attach(router, resourceId, desc);
 
                 return resource.getLinks(context, req)
@@ -929,7 +996,9 @@ describe('hyper-rest', function () {
 
             it('加载资源时将导致该资源的所有服务被加载', function () {
                 var attachSpy = sinon.spy();
-                stubs['./RestDescriptor'] = {attach: attachSpy};
+                stubs['./RestDescriptor'] = {
+                    attach: attachSpy
+                };
                 resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
 
                 var resource = resourceRegistry.attach(router, resourceId, desc);
@@ -944,8 +1013,12 @@ describe('hyper-rest', function () {
             var transCondStub;
 
             beforeEach(function () {
-                context = {context: "any context"};
-                req = {req: "any request object"};
+                context = {
+                    context: "any context"
+                };
+                req = {
+                    req: "any request object"
+                };
                 transitionGraph = {
                     resource1: {
                         rel1: "foo",
@@ -972,9 +1045,14 @@ describe('hyper-rest', function () {
             it("最简单的迁移定义", function () {
                 return transitionGraphParser.getLinks("resource1", context, req)
                     .then(function (data) {
-                        expect(data).eql([
-                            {rel: "rel1", href: fooUrl},
-                            {rel: "rel2", href: feeUrl},
+                        expect(data).eql([{
+                                rel: "rel1",
+                                href: fooUrl
+                            },
+                            {
+                                rel: "rel2",
+                                href: feeUrl
+                            },
                         ])
                     })
             });
@@ -988,9 +1066,10 @@ describe('hyper-rest', function () {
 
                 return transitionGraphParser.getLinks("resource1", context, req)
                     .then(function (data) {
-                        expect(data).eql([
-                            {rel: "rel1", href: fooUrl}
-                        ])
+                        expect(data).eql([{
+                            rel: "rel1",
+                            href: fooUrl
+                        }])
                     })
             });
 
@@ -1003,9 +1082,14 @@ describe('hyper-rest', function () {
 
                 return transitionGraphParser.getLinks("resource1", context, req)
                     .then(function (data) {
-                        expect(data).eql([
-                            {rel: "rel1", href: fooUrl},
-                            {rel: "rel2", href: feeUrl}
+                        expect(data).eql([{
+                                rel: "rel1",
+                                href: fooUrl
+                            },
+                            {
+                                rel: "rel2",
+                                href: feeUrl
+                            }
                         ])
                     })
             });
@@ -1062,8 +1146,12 @@ describe('hyper-rest', function () {
                         partialsDir: viewsDir + '/partials',
                         extname: '.' + viewEngineName
                     })
-                    .returns({engine: viewEngine});
-                stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
+                    .returns({
+                        engine: viewEngine
+                    });
+                stubs['express-handlebars'] = {
+                    create: handlebarsEngineCreatorStub
+                };
 
                 viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir);
                 viewsEngineFactory.attachTo(expressApp);
@@ -1075,8 +1163,12 @@ describe('hyper-rest', function () {
                 handlebarsEngineCreatorStub.withArgs({
                     partialsDir: partialsDir,
                     extname: '.' + viewEngineName
-                }).returns({engine: viewEngine});
-                stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
+                }).returns({
+                    engine: viewEngine
+                });
+                stubs['express-handlebars'] = {
+                    create: handlebarsEngineCreatorStub
+                };
 
                 viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     partialsDir: partialsDir
@@ -1090,8 +1182,12 @@ describe('hyper-rest', function () {
                 handlebarsEngineCreatorStub.withArgs({
                     partialsDir: viewsDir + '/partials',
                     extname: extname
-                }).returns({engine: viewEngine});
-                stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
+                }).returns({
+                    engine: viewEngine
+                });
+                stubs['express-handlebars'] = {
+                    create: handlebarsEngineCreatorStub
+                };
 
                 viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     extname: extname
@@ -1106,8 +1202,12 @@ describe('hyper-rest', function () {
                     partialsDir: viewsDir + '/partials',
                     extname: '.' + viewEngineName,
                     helpers: helpers
-                }).returns({engine: viewEngine});
-                stubs['express-handlebars'] = {create: handlebarsEngineCreatorStub};
+                }).returns({
+                    engine: viewEngine
+                });
+                stubs['express-handlebars'] = {
+                    create: handlebarsEngineCreatorStub
+                };
 
                 viewsEngineFactory = proxyquire('../express/HandlebarsFactory', stubs)(viewEngineName, viewsDir, {
                     helpers: helpers
@@ -1129,16 +1229,22 @@ describe('hyper-rest', function () {
                 var requestAgent = require('supertest');
                 var app = appBuilder
                     .setWebRoot('/app', './data/website')
-                    .end();
+                    .end()
+                    .getApp();
                 var request = requestAgent(app);
-                request.get('/app/staticResource.json').expect(200, {name: 'foo'}, done);
+                request.get('/app/staticResource.json').expect(200, {
+                    name: 'foo'
+                }, done);
             });
 
             it('开发人员可以加载handlebars View engine', function () {
                 var loadSpy = sinon.spy();
                 var app = appBuilder
-                    .setViewEngine({attachTo: loadSpy})
-                    .end();
+                    .setViewEngine({
+                        attachTo: loadSpy
+                    })
+                    .end()
+                    .getApp();
                 expect(loadSpy).calledWith(app).calledOnce;
             });
 
@@ -1148,8 +1254,12 @@ describe('hyper-rest', function () {
                     attach: attachSpy
                 };
 
-                var fooResourceDesc = {foo: 'foo resource desc'};
-                var feeResourceDesc = {fee: 'fee resource desc'};
+                var fooResourceDesc = {
+                    foo: 'foo resource desc'
+                };
+                var feeResourceDesc = {
+                    fee: 'fee resource desc'
+                };
                 var resources = {
                     foo: fooResourceDesc,
                     fee: feeResourceDesc
@@ -1157,13 +1267,14 @@ describe('hyper-rest', function () {
 
                 var app = appBuilder
                     .setResources(resourceRegistry, resources)
-                    .end();
+                    .end()
+                    .getApp();
 
                 expect(attachSpy).calledWith(app, 'foo', fooResourceDesc);
                 expect(attachSpy).calledWith(app, 'fee', feeResourceDesc);
             });
 
-            xdescribe('运行服务器', function () {
+            describe('运行服务器', function () {
                 const superagent = require('superagent');
                 var server, port;
 
@@ -1180,26 +1291,26 @@ describe('hyper-rest', function () {
                     });
                 });
 
-                function runAndCheckServer(serverPort, url, done) {
-                    server = appBuilder
-                        .run(serverPort, function () {
-                            superagent.get(url)
-                                .end(function (e, res) {
-                                    expect(e).eql(null);
-                                    expect(res.body.name).eql('foo');
-                                    done();
-                                });
-                        });
+                function runAndCheckServer(url, done) {
+                    server = appBuilder.run(function () {
+                        superagent.get(url)
+                            .end(function (e, res) {
+                                expect(e).eql(null);
+                                expect(res.body.name).eql('foo');
+                                done();
+                            });
+                    });
 
                 }
 
                 it('运行一个缺省的Server', function (done) {
-                    runAndCheckServer(port, 'http://0.0.0.0:' + port + '/staticResource.json', done);
+                    process.env.PORT = 80;
+                    runAndCheckServer('http://localhost/staticResource.json', done);
                 });
 
                 it('系统管理员可以通过设置Node.js运行环境变量设定端口号', function (done) {
                     process.env.PORT = port;
-                    runAndCheckServer(null, 'http://localhost:' + port + '/staticResource.json', done);
+                    runAndCheckServer('http://localhost:' + port + '/staticResource.json', done);
                 });
             });
         });
@@ -1210,19 +1321,18 @@ describe('hyper-rest', function () {
         var fsm, lifecycle, event, source, data, handlerSpy, currentState;
         beforeEach(function () {
             stateRepositoryStub = sinon.stub({
-                init: function (source, state) {
-                },
-                current:function (source) {
-                },
-                update:function (source, state) {
-                }
+                init: function (source, state) {},
+                current: function (source) {},
+                update: function (source, state) {}
             });
             lifecycleFactory = require("../app/Lifecycle")(stateRepositoryStub);
 
             handlerSpy = sinon.spy();
             currentState = "draft";
             source = "foo";
-            data = {data: "any data"};
+            data = {
+                data: "any data"
+            };
             event = {
                 source: source,
                 data: data
@@ -1243,9 +1353,11 @@ describe('hyper-rest', function () {
 
         it("接受当前事件, 保持状态不变", function () {
             fsm = {
-                transitions: [
-                    { name: 'modify',   from: 'draft',  to: 'draft' }
-                ],
+                transitions: [{
+                    name: 'modify',
+                    from: 'draft',
+                    to: 'draft'
+                }],
                 methods: {
                     onModify: handlerSpy
                 }
@@ -1262,9 +1374,11 @@ describe('hyper-rest', function () {
 
         it("接受当前事件, 状态发生迁移", function () {
             fsm = {
-                transitions: [
-                    { name: 'submit',   from: 'draft',  to: 'reviewing' }
-                ],
+                transitions: [{
+                    name: 'submit',
+                    from: 'draft',
+                    to: 'reviewing'
+                }],
                 methods: {
                     onSubmit: handlerSpy
                 }

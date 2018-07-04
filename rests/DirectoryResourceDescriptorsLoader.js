@@ -10,7 +10,7 @@ module.exports = {
         var files = fs.readdirSync(dir);
         files.forEach(function (f) {
             var desc = require(path.join(dir, f));
-            var id = f.substr(0, f.lastIndexOf('.'));   //去除文件名后缀
+            var id = f.substr(0, f.lastIndexOf('.')); //去除文件名后缀
             rests[id] = desc;
         });
         return rests;

@@ -1,8 +1,7 @@
 /**
  * Created by clx on 2017/10/13.
  */
-const Promise = require('bluebird'),
-    URL = require('../express/Url'),
+const URL = require('../express/Url'),
     restDescriptor = require('./RestDescriptor'),
     pathToRegexp = require('path-to-regexp');
 
@@ -77,4 +76,3 @@ module.exports = {
         return resource;
     }
 }
-
