@@ -26,7 +26,7 @@ module.exports = {
     getTransitionUrl: function (resourceId, destResourceId, context, req) {
         logger.debug('Dest resource Id: ' + destResourceId);
         logger.debug('__resources: ' + JSON.stringify(__resources).toString());
-        logger.debug('the resource content is: ' + JSON.stringify(__resources[destResourceId]).toString());
+        logger.debug('the resource content is: ' + typeof __resources[destResourceId].getUrl);
         return __resources[destResourceId].getUrl(resourceId, context, req);
     },
 
