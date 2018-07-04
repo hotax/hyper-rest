@@ -80,7 +80,9 @@ module.exports = {
             restDescriptor.attach(router, resource, resourceDesc.url, service);
         });
 
+        logger.debug('push resource[' + resourceId + '] to __resources');
         __resources[resourceId] = resource;
+        logger.debug(JSON.stringify(__resources).toString());
         return resource;
     }
 }
