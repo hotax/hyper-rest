@@ -3,7 +3,17 @@
  */
 const URL = require('../express/Url'),
     restDescriptor = require('./RestDescriptor'),
-    pathToRegexp = require('path-to-regexp');
+    pathToRegexp = require('path-to-regexp'),
+    logger = require('../app/Logger');
+
+const parseUrlPattern = function (urlPattern) {
+    var pattern = {
+        keys: [],
+    }
+    pathToRegexp(urlPattern, pattern.keys);
+    pattern.toPath = pathToRegexp.compile(urlPattern);
+    return pattern;
+};
 
 var __resources = {};
 var __transGraph;
@@ -12,26 +22,24 @@ module.exports = {
     setTransitionGraph: function (graph) {
         __transGraph = graph;
     },
+
     getTransitionUrl: function (resourceId, destResourceId, context, req) {
+        logger.debug('Dest resource Id: ' + destResourceId);
+        logger.debug('the resource content is: ' + JSON.stringify(__resources[destResourceId]));
+
         return __resources[destResourceId].getUrl(resourceId, context, req);
     },
+
     attach: function (router, resourceId, resourceDesc) {
         if (!resourceDesc.url) throw 'a url must be defined!';
         if (!resourceDesc.rests || resourceDesc.rests.length < 1) throw 'no restful service is defined!';
 
-        var parseUrlPattern = function parseUrlPattern(urlPattern) {
-            var pattern = {
-                keys: [],
-            }
-            pathToRegexp(urlPattern, pattern.keys);
-            pattern.toPath = pathToRegexp.compile(urlPattern);
-            return pattern;
-        };
         var urlPattern = parseUrlPattern(resourceDesc.url);
         var resource = {
             getResourceId: function () {
                 return resourceId;
             },
+
             getUrl: function (fromResourceId, context, req) {
                 var params = {};
                 for (var i = 0; i < urlPattern.keys.length; i++) {
