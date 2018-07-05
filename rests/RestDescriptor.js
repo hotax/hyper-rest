@@ -25,11 +25,7 @@ const __readHandler = function (context, restDesc, req, res) {
             representation = {
                 href: self
             };
-            logger.debug('BUILD representation .........')
             representation[context.getResourceId()] = data;
-
-            logger.debug('representation is:' + JSON.stringify(representation));
-
             res.set('ETag', data.__v);
             if (data.modifiedDate) res.set('Last-Modified', data.modifiedDate);
             return context.getLinks(data, req);
