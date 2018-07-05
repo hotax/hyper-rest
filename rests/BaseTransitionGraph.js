@@ -14,8 +14,9 @@ module.exports = function (graph, urlBuilder) {
                     var links = [];
                     for (var key in trans) {
                         var resource = trans[key];
+                        logger.debug('trans[' + key + '] is:' + JSON.stringify(resource));
                         if (typeof resource === "object") {
-                            if (!resource.condition(context, req)) continue;
+                            if (resource.condition && !resource.condition(context, req)) continue;
                             resource = resource.id;
                         }
                         logger.debug('begin getTransitionUrl of ' + resourceId);
