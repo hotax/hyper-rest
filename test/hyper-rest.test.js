@@ -269,14 +269,6 @@ describe('hyper-rest', function () {
     });
 
     describe('Restful', function () {
-        it('集成', function () {
-            var restDir = path.join(__dirname, './data/rests');
-            resourceDescriptors = require('../rests/DirectoryResourceDescriptorsLoader').loadFrom(restsDir);
-
-
-
-        });
-
         describe('基于目录内资源描述文件的资源加载器', function () {
             const loader = require('../rests/DirectoryResourceDescriptorsLoader');
 
