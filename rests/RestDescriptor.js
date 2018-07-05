@@ -32,6 +32,7 @@ const __readHandler = function (context, restDesc, req, res) {
         })
         .then(function (links) {
             representation.links = links;
+            logger.debug('We have got links, now representation is: ' + JSON.stringify(representation));
             res.set('Content-Type', MEDIA_TYPE);
             return res.status(200).json(representation);
         })
