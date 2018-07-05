@@ -18,7 +18,9 @@ module.exports = function (graph, urlBuilder) {
                             if (!resource.condition(context, req)) continue;
                             resource = resource.id;
                         }
+                        logger.debug('begin getTransitionUrl of ' + resourceId);
                         var href = urlBuilder.getTransitionUrl(resourceId, resource, context, req);
+                        logger.debug('Url of ' + resourceId + ': ' + href);
                         links.push({
                             rel: key,
                             href: href
