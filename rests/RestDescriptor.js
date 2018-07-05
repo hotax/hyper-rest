@@ -38,8 +38,8 @@ const __readHandler = function (context, restDesc, req, res) {
         })
         .catch(function (err) {
             logger.debug('Read service has an err:' + JSON.stringify(err));
-            if (err.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end();
+            /* if (err.toLowerCase() === REASON_NOT_FOUND)
+                return res.status(404).end(); */
             console.error(err);
             return res.status(500).send(err);
         })
