@@ -1,7 +1,7 @@
 /**
  * Created by clx on 2017/10/29.
  */
-const Promise = require('bluebird');
+/* const Promise = require('bluebird');
 
 module.exports = {
     setResourcesNameList: function (nameList) {
@@ -47,3 +47,4 @@ module.exports = {
         return Promise.resolve(trans[resourceId]);
     }
 }
+ */

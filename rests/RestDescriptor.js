@@ -32,14 +32,12 @@ const __readHandler = function (context, restDesc, req, res) {
         })
         .then(function (links) {
             representation.links = links;
-            logger.debug('We have got links, now representation is: ' + JSON.stringify(representation));
             res.set('Content-Type', MEDIA_TYPE);
             return res.status(200).json(representation);
         })
         .catch(function (err) {
-            logger.debug('Read service has an err:' + JSON.stringify(err));
-            /* if (err.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end(); */
+            if (err.toLowerCase() === REASON_NOT_FOUND)
+                return res.status(404).end();
             console.error(err);
             return res.status(500).send(err);
         })

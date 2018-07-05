@@ -7,21 +7,16 @@ const Promise = require("bluebird"),
 module.exports = function (graph, urlBuilder) {
     return {
         getLinks: function (resourceId, context, req) {
-            logger.debug('begin to getLinks from graph!');
             return Promise.resolve(graph[resourceId])
                 .then(function (trans) {
-                    logger.debug('we have got some trans from graph!');
                     var links = [];
                     for (var key in trans) {
                         var resource = trans[key];
-                        logger.debug('trans[' + key + '] is:' + JSON.stringify(resource));
                         if (typeof resource === "object") {
                             if (resource.condition && !resource.condition(context, req)) continue;
                             resource = resource.id;
                         }
-                        logger.debug('begin getTransitionUrl of ' + resourceId);
                         var href = urlBuilder.getTransitionUrl(resourceId, resource, context, req);
-                        logger.debug('Url of ' + resourceId + ': ' + href);
                         links.push({
                             rel: key,
                             href: href

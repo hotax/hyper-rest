@@ -21,7 +21,6 @@ var __transGraph;
 
 module.exports = {
     setTransitionGraph: function (graph) {
-        logger.debug('graph is set:' + JSON.stringify(graph));
         __transGraph = graph;
     },
 
