@@ -25,12 +25,8 @@ module.exports = {
     },
 
     getTransitionUrl: function (resourceId, destResourceId, context, req) {
-        logger.debug('Dest resource Id: ' + destResourceId);
         var resource = __resources[destResourceId];
-        if (_.isFunction(resource.getUrl)) logger.debug('the geturl is a function!!!!!!!!!!!!! ');
-        logger.debug('resource content is: ' + JSON.stringify(resource).toString());
-        //if (__resources[destResourceId].getUrl) logger.debug('the geturl function is exist! ');
-        return __resources[destResourceId].getUrl(resourceId, context, req);
+        return resource.getUrl(resourceId, context, req);
     },
 
     attach: function (router, resourceId, resourceDesc) {
@@ -84,11 +80,6 @@ module.exports = {
         });
 
         __resources[resourceId] = resource;
-        if (resourceId == 'Specifications') {
-            var url = resource.getUrl('Quotor');
-            logger.debug('url: ' + url);
-        }
-
         return resource;
     }
 };
