@@ -8,7 +8,8 @@ const MEDIA_TYPE = 'application/vnd.hotex.com+json',
     REASON_CONCURRENT_CONFLICT = 'concurrent-conflict',
     REASON_NOT_FOUND = 'not-found';
 
-const URL = require('../express/Url');
+const URL = require('../express/Url'),
+    logger = require('../app/Logger');
 
 const __attachHandler = function (router, method, context, urlPattern, restDesc) {
     return router[method](urlPattern, function (req, res) {
@@ -24,7 +25,11 @@ const __readHandler = function (context, restDesc, req, res) {
             representation = {
                 href: self
             };
+            logger.debug('BUILD representation .........')
             representation[context.getResourceId()] = data;
+
+            logger.debug('representation is:' + JSON.stringify(representation));
+
             res.set('ETag', data.__v);
             if (data.modifiedDate) res.set('Last-Modified', data.modifiedDate);
             return context.getLinks(data, req);
@@ -35,7 +40,8 @@ const __readHandler = function (context, restDesc, req, res) {
             return res.status(200).json(representation);
         })
         .catch(function (err) {
-            if(err.toLowerCase() === REASON_NOT_FOUND)
+            logger.debug('Read service has an err:' + JSON.stringify(err));
+            if (err.toLowerCase() === REASON_NOT_FOUND)
                 return res.status(404).end();
             console.error(err);
             return res.status(500).send(err);
@@ -63,7 +69,10 @@ const __queryHandler = function (context, restDesc, req, res) {
                 var copy = Object.assign({}, itemData);
                 delete copy['id'];
                 var item = {
-                    link: {rel: restDesc.element, href: href},
+                    link: {
+                        rel: restDesc.element,
+                        href: href
+                    },
                     data: copy
                 };
                 representation.collection.items.push(item);
@@ -83,8 +92,8 @@ const __queryHandler = function (context, restDesc, req, res) {
 const __deleteHandler = function (context, restDesc, req, res) {
     var id = req.params["id"];
     var etag = req.get("If-Match");
-    var aPromis = etag ? restDesc.handler.condition(id, etag)
-        : !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
+    var aPromis = etag ? restDesc.handler.condition(id, etag) :
+        !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
     return aPromis
         .then(function (data) {
             if (!data) return Promise.reject(REASON_IF_MATCH);
@@ -115,8 +124,8 @@ const __deleteHandler = function (context, restDesc, req, res) {
 const __updateHandler = function (context, restDesc, req, res) {
     var id = req.params["id"];
     var etag = req.get("If-Match");
-    var aPromis = etag ? restDesc.handler.condition(id, etag)
-        : !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
+    var aPromis = etag ? restDesc.handler.condition(id, etag) :
+        !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
     return aPromis
         .then(function (data) {
             if (!data) return Promise.reject(REASON_IF_MATCH);
@@ -138,7 +147,7 @@ const __updateHandler = function (context, restDesc, req, res) {
             if (reason.toLowerCase() === REASON_IF_MATCH)
                 return res.status(412).end();
             if (reason.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end();//Concurrent-Conflict
+                return res.status(404).end(); //Concurrent-Conflict
             if (reason.toLowerCase() === REASON_CONCURRENT_CONFLICT)
                 return res.status(304).end();
             if (reason.toLowerCase() === REASON_NOTHING)
@@ -189,21 +198,38 @@ const __entryHandler = function (context, restDesc, req, res) {
 };
 
 const handlerMap = {
-    entry: {method: "get", handler: __entryHandler},
-    create: {method: "post", handler: __createHandler},
-    update: {method: "put", handler: __updateHandler},
-    delete: {method: "delete", handler: __deleteHandler},
-    query: {method: "get", handler: __queryHandler},
-    read: {method: "get", handler: __readHandler}
+    entry: {
+        method: "get",
+        handler: __entryHandler
+    },
+    create: {
+        method: "post",
+        handler: __createHandler
+    },
+    update: {
+        method: "put",
+        handler: __updateHandler
+    },
+    delete: {
+        method: "delete",
+        handler: __deleteHandler
+    },
+    query: {
+        method: "get",
+        handler: __queryHandler
+    },
+    read: {
+        method: "get",
+        handler: __readHandler
+    }
 };
 
 module.exports = {
     attach: function (router, currentResource, urlPattern, restDesc) {
         var type = restDesc.type.toLowerCase();
-        if(type === 'get'){
+        if (type === 'get') {
             return router[type](urlPattern, restDesc.handler);
         }
         return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
     }
 }
-
