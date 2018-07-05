@@ -269,6 +269,13 @@ describe('hyper-rest', function () {
     });
 
     describe('Restful', function () {
+        it('集成', function () {
+            var restDir = path.join(__dirname, './data/rests');
+            resourceDescriptors = require('../rests/DirectoryResourceDescriptorsLoader').loadFrom(restsDir);
+
+
+
+        });
 
         describe('基于目录内资源描述文件的资源加载器', function () {
             const loader = require('../rests/DirectoryResourceDescriptorsLoader');
@@ -282,10 +289,10 @@ describe('hyper-rest', function () {
         });
 
         describe('对Rest服务的解析', function () {
-            const bodyParser = require('body-parser'), 
-            requestAgent = require('supertest'),
-            app = require('express')(),
-            request = requestAgent(app);
+            const bodyParser = require('body-parser'),
+                requestAgent = require('supertest'),
+                app = require('express')(),
+                request = requestAgent(app);
 
             var url, desc, currentResource;
             var selfUrl, urlResolveStub, restDescriptor;
