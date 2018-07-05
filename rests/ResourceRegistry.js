@@ -84,7 +84,10 @@ module.exports = {
         });
 
         __resources[resourceId] = resource;
-        if (_.isFunction(__resources[resourceId].getUrl)) logger.debug('the geturl function is exist! ');
+        if (resourceId == 'Specifications') {
+            var url = resource.getUrl('Quotor');
+            logger.debug('url: ' + url);
+        }
 
         return resource;
     }
