@@ -27,7 +27,8 @@ module.exports = {
     getTransitionUrl: function (resourceId, destResourceId, context, req) {
         logger.debug('Dest resource Id: ' + destResourceId);
         var resource = __resources[destResourceId];
-        logger.debug('resource content is: ' + JSON.stringify(resource).toString());
+        if (_.isFunction(resource.getUrl)) logger.debug('the geturl is a function!!!!!!!!!!!!! ');
+        logger.debug('resource content is: ' + JSON.stringify(resource));
         //if (__resources[destResourceId].getUrl) logger.debug('the geturl function is exist! ');
         return __resources[destResourceId].getUrl(resourceId, context, req);
     },
@@ -82,9 +83,8 @@ module.exports = {
             restDescriptor.attach(router, resource, resourceDesc.url, service);
         });
 
-        if (resource.getUrl) logger.debug('the geturl function of resource is exist! ');
         __resources[resourceId] = resource;
-        if (__resources[resourceId].getUrl) logger.debug('the geturl function is exist! ');
+        if (_.isFunction(__resources[resourceId].getUrl)) logger.debug('the geturl function is exist! ');
 
         return resource;
     }
