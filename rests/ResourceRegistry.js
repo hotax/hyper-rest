@@ -28,7 +28,7 @@ module.exports = {
         logger.debug('Dest resource Id: ' + destResourceId);
         var resource = __resources[destResourceId];
         if (_.isFunction(resource.getUrl)) logger.debug('the geturl is a function!!!!!!!!!!!!! ');
-        logger.debug('resource content is: ' + JSON.stringify(resource));
+        logger.debug('resource content is: ' + JSON.stringify(resource).toString());
         //if (__resources[destResourceId].getUrl) logger.debug('the geturl function is exist! ');
         return __resources[destResourceId].getUrl(resourceId, context, req);
     },
