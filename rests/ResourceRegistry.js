@@ -63,6 +63,7 @@ module.exports = {
                 }
 
                 var path = urlPattern.toPath(params);
+                // TODO: 考虑是否一定需要完整的URL 
                 path = URL.resolve(req, path);
 
                 return path;

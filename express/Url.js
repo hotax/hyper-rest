@@ -8,9 +8,9 @@ module.exports = {
         var host = req.get('host');
         var hostNameAndPort = host.split(':');
         var baseUrl;
-        if(hostNameAndPort.length > 1 && hostNameAndPort[1] === "80"){
+        if (hostNameAndPort.length > 1 && hostNameAndPort[1] === "80") {
             baseUrl = hostNameAndPort[0];
-        }else{
+        } else {
             baseUrl = host;
         }
         return URL.resolve(req.protocol + '://' + baseUrl, path);

@@ -12,6 +12,8 @@ module.exports = function (graph, urlBuilder) {
                     var links = [];
                     for (var key in trans) {
                         var resource = trans[key];
+                        var r = (typeof resource === "object") ? JSON.stringify(resource) : resource;
+                        logger.debug('get link of the resource:' + r);
                         if (typeof resource === "object") {
                             if (resource.condition && !resource.condition(context, req)) continue;
                             resource = resource.id;
