@@ -1056,6 +1056,26 @@ describe('hyper-rest', function () {
                     })
             });
 
+            it("以对象表达迁移", function () {
+                transCondStub.withArgs(context, req).returns(false);
+                transitionGraph.resource1.rel2 = {
+                    id: "fee"
+                };
+
+                return transitionGraphParser.getLinks("resource1", context, req)
+                    .then(function (data) {
+                        expect(data).eql([{
+                                rel: "rel1",
+                                href: fooUrl
+                            },
+                            {
+                                rel: "rel2",
+                                href: feeUrl
+                            },
+                        ])
+                    })
+            });
+
             it("未满足迁移条件", function () {
                 transCondStub.withArgs(context, req).returns(false);
                 transitionGraph.resource1.rel2 = {
