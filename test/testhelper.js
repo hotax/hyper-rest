@@ -17,6 +17,7 @@ global.dbURI = 'mongodb://localhost/test';
 global.clearDB = require('../db/mongoDb/clearDB')(dbURI);
 
 global.expect = chai.expect;
+global.assert = chai.assert;
 global.sinon = sinon;
 chai.use(chaiXml);
 chai.use(sinonChai);

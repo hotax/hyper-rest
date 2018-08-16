@@ -3,6 +3,7 @@
  */
 var proxyquire = require('proxyquire'),
     path = require('path'),
+    util = require('util'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema;
 
@@ -270,11 +271,25 @@ describe('hyper-rest', function () {
 
     describe('Restful', function () {
         describe('基于目录内资源描述文件的资源加载器', function () {
-            const loader = require('../rests/DirectoryResourceDescriptorsLoader');
+            var descDir, loader;
+
+            beforeEach(function () {
+                descDir = path.join(__dirname, './data/rests');
+            });
+
+            it('指定的资源目录不存在', function () {
+                descDir = path.join(__dirname, './data/fff');
+                const createLoader = function(){
+                    return require('../rests/DirectoryResourceDescriptorsLoader')(descDir);
+                }
+                const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', descDir);
+                assert.throws(createLoader, Error, errMsg);
+            });
 
             it('加载一个资源描述', function () {
+                loader = require('../rests/DirectoryResourceDescriptorsLoader')(descDir);
                 var fooDesc = require('./data/rests/foo');
-                expect(loader.loadFrom(path.join(__dirname, './data/rests'))).eql({
+                expect(loader.loadAll()).eql({
                     foo: fooDesc
                 });
             });

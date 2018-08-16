@@ -2,17 +2,30 @@
  * Created by clx on 2017/10/14.
  */
 const fs = require('fs'),
-    path = require('path');
+    util = require('util'),
+    path = require('path'),
+    logger = require('../app/Logger');
 
-module.exports = {
-    loadFrom: function (dir) {
-        var rests = {};
-        var files = fs.readdirSync(dir);
-        files.forEach(function (f) {
-            var desc = require(path.join(dir, f));
-            var id = f.substr(0, f.lastIndexOf('.')); //去除文件名后缀
-            rests[id] = desc;
-        });
-        return rests;
+const DirectoryResourceDescriptorsLoader = function (dir) {
+    if (!fs.existsSync(dir)) {
+        const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', dir);
+        throw new Error(errMsg);
+    }
+    return {
+        loadAll: function () {
+            var rests = {};
+            var files = fs.readdirSync(dir);
+            files.forEach(function (f) {
+                const fn = path.join(dir, f);
+                if (fs.lstatSync(fn).isFile()) {
+                    logger.debug('Loading resource descriptor: ' + fn);
+                    const desc = require(fn);
+                    const id = f.substr(0, f.lastIndexOf('.')); //去除文件名后缀
+                    rests[id] = desc;
+                }
+            });
+            return rests;
+        }
     }
 }
+module.exports = DirectoryResourceDescriptorsLoader;
