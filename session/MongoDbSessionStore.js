@@ -52,6 +52,7 @@ module.exports = function (maxAge) {
         attachTo: function (app) {
             app.use(cookieParser(SECRET));
             app.use(session(sessionOptions));
+            
         },
         authByServer: function (server) {
             logger.info('begin auth by server .......');
