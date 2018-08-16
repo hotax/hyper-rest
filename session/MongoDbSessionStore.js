@@ -41,7 +41,7 @@ const sessionOptions = {
     resave: true,
     saveUninitialized: true,
     cookie: {
-        maxAge: maxAge || 3 * 60 * 60 * 1000,
+        maxAge: 3 * 60 * 60 * 1000,
         secure: COOKIE_SECURE
     },
     store: sessionStore
