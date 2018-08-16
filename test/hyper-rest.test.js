@@ -41,9 +41,50 @@ describe('hyper-rest', function () {
         })
     });
 
+    describe('Session', function(){
+        describe('基于Mongodb的Session管理', function () {
+            it('session', function (done) {
+                var requestAgent = require('supertest');
+                var app = require('express')();
+                var session = require('express-session');
+                const MongoStore = require('connect-mongo')(session);
+                app.use(session({
+                    secret: 'this-is-a-secret-token',
+                    cookie: {
+                        maxAge: 60000
+                    },
+                    store: new MongoStore({
+                        url: 'mongodb://localhost/test'
+                    })
+                }));
+
+                app.get('/', function (req, res, next) {
+                    var sessData = req.session;
+                    sessData.someAttribute = "foo";
+                    res.send('Returning with some text');
+                });
+                app.get('/bar', function (req, res, next) {
+                    var someAttribute = req.session.someAttribute;
+                    res.send(`This will print the attribute I set earlier: ${someAttribute}`);
+                });
+
+                var request = requestAgent(app);
+                request.get('/')
+                .end(function(err, res){
+                    request.get('/bar')
+                    .expect(200)
+                    .end(function(err, res){
+                        err = err;
+                        done();
+                    })
+                })
+            });
+        });
+    });
+
     describe('同数据库相关部件', function () {
         it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
-            process.env.MONGODB = 'mongodb://localhost:27017/test';
+            process.env.MONGODB = 'mongodb://localhost/jingyin';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
             connectDb(function () {});
         });

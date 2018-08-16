@@ -28,7 +28,7 @@ const onAuthorizeFail = function (data, message, error, accept) {
 };
 
 const sso = {
-    uri: DB_CONNECTION_STRING
+    url: DB_CONNECTION_STRING
 };
 logger.debug('session store creative options:' + JSON.stringify(sso));
 const sessionStore = new MongoDBStore(sso);
