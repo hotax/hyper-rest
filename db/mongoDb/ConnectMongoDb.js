@@ -8,7 +8,7 @@ module.exports = function (onOpen, connStr) {
     mongoose.Promise = promise;
     connStr = connStr || process.env.MONGODB;
     mongoose.connect(connStr, {
-        //useMongoClient: true,
+        useNewUrlParser: true,
         /* other options */
     });
     mongoose.connection.on('open', onOpen);
