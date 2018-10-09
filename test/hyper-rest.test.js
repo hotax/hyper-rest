@@ -20,6 +20,12 @@ describe('hyper-rest', function () {
         };
     });
 
+    describe('Auth2', function () {
+        beforeEach(function () {});
+
+        
+    });
+
     describe('出错原因', function () {
         var createErrorReason, code, msg;
         var res, statusMock, sendMock;
@@ -41,7 +47,7 @@ describe('hyper-rest', function () {
         })
     });
 
-    describe('Session', function(){
+    describe('Session', function () {
         describe('基于Mongodb的Session管理', function () {
             it('session', function (done) {
                 var requestAgent = require('supertest');
@@ -70,14 +76,14 @@ describe('hyper-rest', function () {
 
                 var request = requestAgent(app);
                 request.get('/')
-                .end(function(err, res){
-                    request.get('/bar')
-                    .expect(200)
-                    .end(function(err, res){
-                        err = err;
-                        done();
+                    .end(function (err, res) {
+                        request.get('/bar')
+                            .expect(200)
+                            .end(function (err, res) {
+                                err = err;
+                                done();
+                            })
                     })
-                })
             });
         });
     });
@@ -281,9 +287,8 @@ describe('hyper-rest', function () {
 
         describe('数据库', function () {
             var dbSave, model;
-            beforeEach(function (done) {
-                mongoose.Promise = global.Promise;
-                clearDB(done);
+            beforeEach(function () {
+                clearDB(dbURI);
             });
 
             it('Db object saver', function () {
@@ -306,6 +311,9 @@ describe('hyper-rest', function () {
                     .then(function (data) {
                         expect(data.length).eqls(1);
                     })
+                    .catch(function(e){
+                        throw e;
+                    })
             });
         })
     });
@@ -320,7 +328,7 @@ describe('hyper-rest', function () {
 
             it('指定的资源目录不存在', function () {
                 descDir = path.join(__dirname, './data/fff');
-                const createLoader = function(){
+                const createLoader = function () {
                     return require('../rests/DirectoryResourceDescriptorsLoader')(descDir);
                 }
                 const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', descDir);
@@ -1321,6 +1329,16 @@ describe('hyper-rest', function () {
                     .end()
                     .getApp();
                 expect(loadSpy).calledWith(app).calledOnce;
+            });
+
+            it('开发人员可以加载Auth2', function () {
+                var auth2 = {
+                    attachTo: sinon.spy()
+                }
+                var app = appBuilder.getApp();
+                appBuilder.setAuth2(auth2)
+                    .end()
+                expect(auth2.attachTo).calledWith(app).calledOnce;
             });
 
             it('开发人员可以加载Rest服务', function () {

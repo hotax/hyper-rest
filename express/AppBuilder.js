@@ -13,6 +13,7 @@ const path = require('path'),
 module.exports.begin = function (base) {
     var defaultViewsPath = path.join(base, 'client/views');
     var __resourceRegistry;
+    var __auth2;
     var viewEngine;
 
     function initappobject() {
@@ -61,6 +62,10 @@ module.exports.begin = function (base) {
             };
             return appBuilder;
         },
+        setAuth2: function(auth2){
+            __auth2 = auth2;
+            return appBuilder;
+        },
         useMiddleware: function (uri, middleware) {
             app.use(uri, middleware);
             return appBuilder;
@@ -72,6 +77,7 @@ module.exports.begin = function (base) {
         end: function () {
             if (viewEngine) viewEngine.attachTo(app);
             if (__resourceRegistry) __resourceRegistry.attachTo(app);
+            if (__auth2) __auth2.attachTo(app);
             return appBuilder;
         },
         run: function (callback) {
