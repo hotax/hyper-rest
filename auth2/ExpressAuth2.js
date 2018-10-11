@@ -74,16 +74,11 @@ function grantTypeAllowed(clientID, grantType, callback) {
  * access the user object it just supplies it to the saveAccessToken() method
  */
 function getUser(username, password, callback) {
+    var findUser = defaultGetUser;
     if (__options && __options.model && __options.model.getUser) {
-        return __options.model.getUser(username, password)
-            .then(function (user) {
-                return user ? callback(false, user) : callback(true);
-            })
-            .catch(function (err) {
-                return callback(err);
-            })
+        findUser = __options.model.getUser;
     }
-    return defaultGetUser(username, password)
+    return findUser(username, password)
         .then(function (user) {
             return user ? callback(false, user) : callback(true);
         })
