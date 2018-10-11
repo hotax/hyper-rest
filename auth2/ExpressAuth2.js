@@ -1,5 +1,6 @@
 const router = require('express').Router(),
-    oAuth2Server = require('node-oauth2-server');
+    oAuth2Server = require('node-oauth2-server'),
+    defaultGetUser = require('./db/MongoDbAuth2Schema').getUser;
 
 var __options;
 
@@ -78,12 +79,17 @@ function getUser(username, password, callback) {
             .then(function (user) {
                 return user ? callback(false, user) : callback(true);
             })
-            .catch(function(err){
+            .catch(function (err) {
                 return callback(err);
             })
-    } 
-    
-    return callback(true);
+    }
+    return defaultGetUser(username, password)
+        .then(function (user) {
+            return user ? callback(false, user) : callback(true);
+        })
+        .catch(function (err) {
+            return callback(err);
+        })
 }
 
 /**
