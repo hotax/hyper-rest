@@ -1,7 +1,8 @@
 /**
  * Created by clx on 2017/10/9.
  */
-var proxyquire = require('proxyquire'),
+var should = require('should'),
+    proxyquire = require('proxyquire'),
     path = require('path'),
     util = require('util'),
     mongoose = require('mongoose'),
@@ -21,9 +22,98 @@ describe('hyper-rest', function () {
     });
 
     describe('Auth2', function () {
-        beforeEach(function () {});
+        it('认证用户时出现任何例外均导致登录失败', function () {
+            var getUserStub = sinon.stub().withArgs("foo", "pwd").returns(Promise.reject(err));
+            var auth2 = require('../express/Auth2')({
+                model: {
+                    getUser: getUserStub
+                }
+            });
+            var requestAgent = require('supertest');
+            var app = require('express')();
+            var bodyParser = require('body-parser');
+            app.use(bodyParser.urlencoded({
+                extended: true
+            }));
+            auth2.attachTo(app);
+            var request = requestAgent(app);
+            return request.post('/auth/login')
+                .set('Accept', 'application/x-www-form-urlencoded')
+                .send("username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null")
+                .expect(500)
+        });
 
-        
+        it('未通过用户认证时，登录失败', function () {
+            var getUserStub = sinon.stub().withArgs("foo", "pwd").returns(Promise.resolve(false));
+            var auth2 = require('../express/Auth2')({
+                model: {
+                    getUser: getUserStub
+                }
+            });
+            var requestAgent = require('supertest');
+            var app = require('express')();
+            var bodyParser = require('body-parser');
+            app.use(bodyParser.urlencoded({
+                extended: true
+            }));
+            auth2.attachTo(app);
+            var request = requestAgent(app);
+            return request.post('/auth/login')
+                .set('Accept', 'application/x-www-form-urlencoded')
+                .send("username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null")
+                .expect(500)
+        });
+
+        it('通过用户认证时，登录成功', function () {
+            const user = {
+                id: 'any user id'
+            }
+            var getUserStub = sinon.stub().withArgs("foo", "pwd").returns(Promise.resolve(user));
+            var auth2 = require('../express/Auth2')({
+                model: {
+                    getUser: getUserStub
+                }
+            });
+            var requestAgent = require('supertest');
+            var app = require('express')();
+            var bodyParser = require('body-parser');
+            app.use(bodyParser.urlencoded({
+                extended: true
+            }));
+            auth2.attachTo(app);
+            var request = requestAgent(app);
+            return request.post('/auth/login')
+                .set('Accept', 'application/x-www-form-urlencoded')
+                .send("username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null")
+                .expect(200)
+                .then(function (res) {
+                    expect(res.body.access_token).not.null;
+                    expect(res.body.token_type).eqls("bearer");
+                    expect(res.body.expires_in).eqls(3600);
+                })
+        });
+
+        it('登录成功', function () {
+            var auth2 = require('../express/Auth2')();
+            var requestAgent = require('supertest');
+            var app = require('express')();
+            var bodyParser = require('body-parser');
+            app.use(bodyParser.urlencoded({
+                extended: true
+            }));
+            auth2.attachTo(app);
+            var request = requestAgent(app);
+            return request.post('/auth/login')
+                .set('Accept', 'application/x-www-form-urlencoded')
+                .send("username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null")
+                .expect(200)
+                .then(function (res) {
+                    expect(res.body.access_token).not.null;
+                    expect(res.body.token_type).eqls("bearer");
+                    expect(res.body.expires_in).eqls(3600);
+                })
+        })
+
     });
 
     describe('出错原因', function () {
@@ -311,7 +401,7 @@ describe('hyper-rest', function () {
                     .then(function (data) {
                         expect(data.length).eqls(1);
                     })
-                    .catch(function(e){
+                    .catch(function (e) {
                         throw e;
                     })
             });
