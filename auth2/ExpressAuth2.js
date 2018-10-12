@@ -121,6 +121,7 @@ module.exports = function (options) {
             app.oauth = oAuth;
             createLoginRoute();
             app.use('/auth', router);
+            app.use(oAuth.errorHandler());
         }
     }
 }

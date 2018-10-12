@@ -22,100 +22,103 @@ describe('hyper-rest', function () {
     });
 
     describe('Auth2', function () {
-        const requestAgent = require('supertest'),
-            app = require('express')(),
-            request = requestAgent(app),
-            bodyParser = require('body-parser'),
-            auth2 = require('../auth2/ExpressAuth2');
-        var oauth;
-        beforeEach(function (done) {
-            app.use(
-                bodyParser.urlencoded({
-                    extended: true
-                })
-            );
-            oauth = auth2();
-            oauth.attachTo(app);
-            return clearDB(done);
-        });
-
-        it('指定用户未注册时，登录失败', function () {
-            return request
-                .post('/auth/login')
-                .set('Accept', 'application/x-www-form-urlencoded')
-                .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
-                .expect(500);
-        });
-
-        it('登录成功', function () {
-            var dbSave = require('../db/mongoDb/SaveObjectToDb');
-            var userDbSchema = require('../auth2/db/MongoDbAuth2Schema').dbSchema.OAuthUsers;
-            return dbSave(userDbSchema, {
-                    username: 'foo',
-                    password: 'pwd'
-                })
-                .then(function () {
-                    return request
-                        .post('/auth/login')
-                        .set('Accept', 'application/x-www-form-urlencoded')
-                        .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
-                        .expect(200);
-                })
-                .then(function (res) {
-                    expect(res.body.access_token).not.null;
-                    expect(res.body.token_type).eqls('bearer');
-                    expect(res.body.expires_in).eqls(3600);
-                });
-        });
-
-        describe('自定义getUser', function () {
-            const getUserStub = sinon.stub();
-
-            beforeEach(function () {
-                oauth = auth2({
-                    model: {
-                        getUser: getUserStub
-                    }
-                });
+        describe('登录', function () {
+            const requestAgent = require('supertest'),
+                app = require('express')(),
+                request = requestAgent(app),
+                bodyParser = require('body-parser'),
+                auth2 = require('../auth2/ExpressAuth2');
+            var oauth;
+            beforeEach(function (done) {
+                app.use(
+                    bodyParser.urlencoded({
+                        extended: true
+                    })
+                );
+                oauth = auth2();
                 oauth.attachTo(app);
+                return clearDB(done);
             });
 
-            it('认证用户时出现任何例外均导致登录失败', function () {
-                getUserStub.withArgs('foo', 'pwd').returns(Promise.reject(err));
-
+            it('指定用户未注册时，登录失败', function () {
                 return request
                     .post('/auth/login')
                     .set('Accept', 'application/x-www-form-urlencoded')
                     .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
-                    .expect(500);
+                    .expect(503);
             });
 
-            it('未通过用户认证时，登录失败', function () {
-                getUserStub.withArgs('foo', 'pwd').returns(Promise.resolve(false));
-                return request
-                    .post('/auth/login')
-                    .set('Accept', 'application/x-www-form-urlencoded')
-                    .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
-                    .expect(500);
-            });
-
-            it('通过用户认证时，登录成功', function () {
-                getUserStub.withArgs('foo', 'pwd').returns(Promise.resolve({
-                    id: 'any user id'
-                }));
-                return request
-                    .post('/auth/login')
-                    .set('Accept', 'application/x-www-form-urlencoded')
-                    .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
-                    .expect(200)
+            it('登录成功', function () {
+                var dbSave = require('../db/mongoDb/SaveObjectToDb');
+                var userDbSchema = require('../auth2/db/MongoDbAuth2Schema').dbSchema.OAuthUsers;
+                return dbSave(userDbSchema, {
+                        username: 'foo',
+                        password: 'pwd'
+                    })
+                    .then(function () {
+                        return request
+                            .post('/auth/login')
+                            .set('Accept', 'application/x-www-form-urlencoded')
+                            .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
+                            .expect(200);
+                    })
                     .then(function (res) {
                         expect(res.body.access_token).not.null;
                         expect(res.body.token_type).eqls('bearer');
                         expect(res.body.expires_in).eqls(3600);
                     });
             });
-        })
+
+            describe('自定义getUser', function () {
+                const getUserStub = sinon.stub();
+
+                beforeEach(function () {
+                    oauth = auth2({
+                        model: {
+                            getUser: getUserStub
+                        }
+                    });
+                    oauth.attachTo(app);
+                });
+
+                it('认证用户时出现任何例外均导致登录失败', function () {
+                    getUserStub.withArgs('foo', 'pwd').returns(Promise.reject(err));
+
+                    return request
+                        .post('/auth/login')
+                        .set('Accept', 'application/x-www-form-urlencoded')
+                        .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
+                        .expect(503);
+                });
+
+                it('未通过用户认证时，登录失败', function () {
+                    getUserStub.withArgs('foo', 'pwd').returns(Promise.resolve(false));
+                    return request
+                        .post('/auth/login')
+                        .set('Accept', 'application/x-www-form-urlencoded')
+                        .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
+                        .expect(503);
+                });
+
+                it('通过用户认证时，登录成功', function () {
+                    getUserStub.withArgs('foo', 'pwd').returns(Promise.resolve({
+                        id: 'any user id'
+                    }));
+                    return request
+                        .post('/auth/login')
+                        .set('Accept', 'application/x-www-form-urlencoded')
+                        .send('username=foo&password=pwd&grant_type=password&client_id=null&client_secret=null')
+                        .expect(200)
+                        .then(function (res) {
+                            expect(res.body.access_token).not.null;
+                            expect(res.body.token_type).eqls('bearer');
+                            expect(res.body.expires_in).eqls(3600);
+                        });
+                });
+            })
+        });
     });
+
 
     describe('出错原因', function () {
         var createErrorReason, code, msg;
