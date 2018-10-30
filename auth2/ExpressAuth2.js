@@ -1,5 +1,7 @@
 const router = require('express').Router(),
     oAuth2Server = require('node-oauth2-server'),
+    defaultAuth2BasePath = '/auth2',
+    defaultAuthEndPointPath = '/auth',
     defaultGetUser = require('./db/MongoDbAuth2Schema').getUser;
 
 var __options, __app;
@@ -159,21 +161,27 @@ function createAccessTokenFrom(userID) {
     })
 }
 
-module.exports = function (options) {
-    __options = options;
-    const oAuth = oAuth2Server({
-        model: {
-            getClient: getClient,
-            grantTypeAllowed: grantTypeAllowed,
-            getUser: getUser,
-            saveAccessToken: saveAccessToken,
-            getAccessToken: getAccessToken
-        },
-        grants: ['password'],
+function getRefreshToken(refreshToken, callback) {
+    return callback(false, {
+        refreshToken: refreshToken,
+        //refreshTokenExpiresAt: token.expires_at,
+        //scope: token.scope,
+        clientId: null,
+        user: {
+            id: '2345'
+        }
     });
+}
 
-    function createLoginRoute() {
-        router.post('/login', oAuth.grant());
+module.exports = function (options) {
+    options = options || {};
+    options.grants = options.grants || ['authorization_code'];
+    
+    const oAuth = oAuth2Server(options);
+
+    function createLoginRoute(path) {
+        path = path || defaultAuthEndPointPath;
+        router.post(path, oAuth.grant());
     }
 
     return {
@@ -183,8 +191,8 @@ module.exports = function (options) {
         attachTo: function (app) {
             __app = app;
             app.oauth = oAuth;
-            createLoginRoute();
-            app.use('/auth', router);
+            createLoginRoute(options.grantPath);
+            app.use(options.auth2BasePath || defaultAuth2BasePath, router);
             app.use(oAuth.errorHandler());
         }
     }
