@@ -99,6 +99,184 @@ describe('hyper-rest', function () {
 	});
 
 	describe('Auth2 Framework', function () {
+		describe('Auth2 protected resources', function () {
+			describe('parse token out of request', function () {
+				const bearerToken = '987tghjkiu6trfghjuytrghj',
+					parseBearerToken = require('../auth2/ParseBearerToken');
+				var req;
+
+				beforeEach(function () {
+					req = {
+						headers: {}
+					}
+				});
+
+				it('from authorization header', function () {
+					req.headers['authorization'] = 'BEARER ' + bearerToken
+					expect(parseBearerToken(req)).eqls(bearerToken);
+				});
+
+				it('from form body', function () {
+					req.body = {
+						access_token: bearerToken
+					}
+					expect(parseBearerToken(req)).eqls(bearerToken);
+				});
+
+				it('from query', function () {
+					req.query = {
+						access_token: bearerToken
+					}
+					expect(parseBearerToken(req)).eqls(bearerToken);
+				});
+			});
+
+			describe('check bearer token and get token', function () {
+				const bearerToken = '987tghjkiu6trfghjuytrghj',
+					token = {
+						accessToken: bearerToken
+					},
+					checkBearerToken = require('../auth2/db/mongodb/CheckBearerToken');
+
+				beforeEach(function (done) {
+					return clearDB(done);
+				});
+
+				it('invalid bearer token', function () {
+					return checkBearerToken(bearerToken)
+						.then(function (data) {
+							expect(data).null;
+						})
+				});
+
+				it('valid bearer token exchanging for access token', function () {
+					const tokenDbSchema = require('../auth2/db/mongodb/TokenSchema');
+					return dbSave(tokenDbSchema, token)
+						.then(function (data) {
+							return checkBearerToken(bearerToken);
+						})
+						.then(function (data) {
+							expect(data).eqls(token);
+						})
+				});
+			});
+
+			describe('get token out of request', function () {
+				const bearerToken = 'dcsdcsdcsdcdscsd',
+					token = {
+						token: 'any token data'
+					},
+					req = {
+						req: 'any req data'
+					};
+				var getBearerToken, parseBearerToken, checkBearerToken;
+
+				beforeEach(function () {
+					parseBearerToken = sinon.stub();
+					checkBearerToken = sinon.stub();
+				});
+
+				it('请求中未包含bearer token', function () {
+					parseBearerToken.withArgs(req).returns(null);
+					getBearerToken = require('../auth2/GetBearerToken')(parseBearerToken);
+
+					return getBearerToken(req).then(function (token) {
+						expect(token).eqls(null);
+						expect(parseBearerToken.callCount).eqls(1);
+					});
+				});
+
+				it('bearer token无效', function () {
+					parseBearerToken.withArgs(req).returns(bearerToken);
+					checkBearerToken.withArgs(bearerToken).returns(Promise.resolve(null));
+					getBearerToken = require('../auth2/GetBearerToken')(parseBearerToken, checkBearerToken);
+
+					return getBearerToken(req).then(function (token) {
+						expect(token).eqls(null);
+						expect(parseBearerToken.callCount).eqls(1);
+						expect(checkBearerToken.callCount).eqls(1);
+					});
+				});
+
+				it('获得token', function () {
+					parseBearerToken.withArgs(req).returns(bearerToken);
+					checkBearerToken.withArgs(bearerToken).returns(Promise.resolve(token));
+					getBearerToken = require('../auth2/GetBearerToken')(parseBearerToken, checkBearerToken);
+
+					return getBearerToken(req).then(function (data) {
+						expect(data).eqls(token);
+					});
+				});
+			});
+
+			describe('protect resource endpoints', function () {
+				const requestAgent = require('supertest'),
+					app = require('express')(),
+					request = requestAgent(app),
+					bodyParser = require('body-parser'),
+					authResources = require('../auth2/AuthResources'),
+					protectedPath = '/auth';
+				const token = {
+					token: 'any token data'
+				};
+				var auth, getBearerToken, resource;
+
+				beforeEach(function () {
+					app.use(
+						bodyParser.urlencoded({
+							extended: true
+						})
+					);
+					getBearerToken = sinon.stub();
+					resource = function (req, res) {
+						expect(req.access_token).eqls(token);
+						res.end();
+					};
+					auth = authResources(getBearerToken);
+				});
+
+				it('未能获得有效bearer token', function () {
+					getBearerToken.returns(Promise.resolve(null));
+					auth.all(app, protectedPath);
+					return request.get(protectedPath + '/foo').expect(401);
+				});
+
+				describe('获得有效bearer token', function () {
+					beforeEach(function () {
+						getBearerToken.returns(Promise.resolve(token));
+					});
+
+					it('可以保护一个完整路径', function () {
+						auth.all(app, protectedPath);
+						app.get(protectedPath + '/foo', resource);
+						return request.get(protectedPath + '/foo').expect(200);
+					});
+
+					describe('可以保护单个endpoint', function () {
+						it('get', function () {
+							auth.get(app, '/foo', resource);
+							return request.get('/foo').expect(200);
+						});
+
+						it('post', function () {
+							auth.post(app, '/foo', resource);
+							return request.post('/foo').expect(200);
+						});
+
+						it('put', function () {
+							auth.put(app, '/foo', resource);
+							return request.put('/foo').expect(200);
+						});
+
+						it('delete', function () {
+							auth.delete(app, '/foo', resource);
+							return request.delete('/foo').expect(200);
+						});
+					});
+				});
+			});
+		});
+
 		describe('Authorization server', function () {
 			describe('add an OAuth client registry record into mongodb', function () {
 				const clients = require('../auth2/db/mongodb/Clients'),
@@ -378,19 +556,21 @@ describe('hyper-rest', function () {
 				it('缺省Auth Client的构建', function () {
 					const client = {
 						client: 'any client content'
-					}
+					};
 					var oauthClient = sinon.stub();
-					oauthClient.withArgs({
-						createHttpError: require('../express/CreateError'),
-						authRequestUriBuilder: require('../auth2/AuthorizationRequestUrlBuilder'),
-						encodeCredentials: require('../auth2/EncodeCredentials'),
-						clientStateFactory: require('../auth2/ClientState'),
-						authCodeGrantRequestFactory: require('../auth2/SendAuthCodeGrantRequest'),
-						callbackFactory: require('../auth2/AuthorizationResponseCallback')
-					}).returns(client);
+					oauthClient
+						.withArgs({
+							createHttpError: require('../express/CreateError'),
+							authRequestUriBuilder: require('../auth2/AuthorizationRequestUrlBuilder'),
+							encodeCredentials: require('../auth2/EncodeCredentials'),
+							clientStateFactory: require('../auth2/ClientState'),
+							authCodeGrantRequestFactory: require('../auth2/SendAuthCodeGrantRequest'),
+							callbackFactory: require('../auth2/AuthorizationResponseCallback')
+						})
+						.returns(client);
 					stubs['./OAuthClient'] = oauthClient;
 
-					var oauth = proxyquire("../auth2", stubs);
+					var oauth = proxyquire('../auth2', stubs);
 					expect(oauth.client).eqls(client);
 				});
 			});
