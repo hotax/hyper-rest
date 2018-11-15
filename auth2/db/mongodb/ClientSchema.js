@@ -10,9 +10,6 @@ const clients = mongoose.model(
         appType: {
             type: String
         }, // "native" or "web". If omitted, web is used as the default value.
-        clientId: {
-            type: String
-        },
         clientName: {
             type: String
         },
@@ -42,6 +39,19 @@ const clients = mongoose.model(
         },
         clientUri: {
             type: String
+        }
+    }, {
+        toJSON: {
+            transform: function (doc, ret) {
+                ret.id = ret._id.toString();
+                delete ret._id;
+                delete ret.__v;
+                for (var prop in doc) {
+                    if (doc[prop] instanceof Date) {
+                        ret[prop] = doc[prop].toJSON();
+                    }
+                }
+            }
         }
     })
 );

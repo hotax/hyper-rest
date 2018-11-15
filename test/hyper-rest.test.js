@@ -99,6 +99,108 @@ describe('hyper-rest', function () {
 	});
 
 	describe('Auth2 Framework', function () {
+		describe('DB models based Mongodb', function () {
+			beforeEach(function (done) {
+				return clearDB(done);
+			});
+
+			describe('Clients', function () {
+				const clients = require('../auth2/db/mongodb/Clients'),
+					clientSchema = require('../auth2/db/mongodb/ClientSchema'),
+					secret = 'client secret',
+					redirectUri = 'http://www.client.com/callback';
+
+				it('Register a new client, and promise resolve client_id', function () {
+					return clients
+						.register({
+							clientSecret: secret,
+							redirectUri: [redirectUri]
+						})
+						.then(function (id) {
+							expect(_.isString(id)).true;
+						});
+				});
+
+				describe('Find client by id', function () {
+					it('invalid id value', function () {
+						return clients.findById('foo').then(function (client) {
+							expect(client).undefined;
+						});
+					});
+
+					it('client not found', function () {
+						return clients.findById('5bda7386419931114c39a6a6').then(function (client) {
+							expect(client).undefined;
+						});
+					});
+
+					it('found the client', function () {
+						var client, clientId;
+						return dbSave(clientSchema, {}).then(function (data) {
+							client = data.toJSON();
+							clientId = client.id;
+							return clients.findById(clientId).then(function (data) {
+								expect(data).eqls(client);
+							});
+						});
+					});
+				});
+
+				describe('authenticate client with id and secret', function () {
+					it('invalid client id', function () {
+						return clients.authenticate('foo', secret)
+							.then(function (result) {
+								result.should.false;
+							})
+					});
+
+					it('authentication failed', function () {
+						return clients.authenticate(undefined, secret)
+							.then(function (result) {
+								result.should.false;
+							})
+					});
+
+					it('authentication successful', function () {
+						var clientId;
+						return dbSave(clientSchema, {
+							secret: secret
+						}).then(function (data) {
+							var client = data.toJSON();
+							clientId = client.id;
+							return clients.authenticate(clientId, secret).then(function (data) {
+								data.should.true;
+							});
+						});
+					});
+				});
+
+			});
+		});
+
+		describe('EncodedCredentials', function () {
+			const querystring = require('querystring');
+			const clientId = 'foo 中文',
+				secret = "anysecret^&@$#'&密码";
+			const encodedCredentials = require('../auth2/EncodeCredentials');
+
+			it('对credentials进行编码', function () {
+				var expected = new Buffer(
+					querystring.escape(clientId) + ':' + querystring.escape(secret)
+				).toString('base64');
+				expect(encodedCredentials.encode(clientId, secret)).eqls(expected);
+			});
+
+			it('解码', function () {
+				var encoded = new Buffer(querystring.escape(clientId) + ':' + querystring.escape(secret)).toString('base64');
+				var credentials = encodedCredentials.decode(encoded);
+				expect(credentials).eqls({
+					id: clientId,
+					secret: secret
+				});
+			})
+		});
+
 		describe('Auth2 protected resources', function () {
 			describe('parse token out of request', function () {
 				const bearerToken = '987tghjkiu6trfghjuytrghj',
@@ -108,25 +210,25 @@ describe('hyper-rest', function () {
 				beforeEach(function () {
 					req = {
 						headers: {}
-					}
+					};
 				});
 
 				it('from authorization header', function () {
-					req.headers['authorization'] = 'BEARER ' + bearerToken
+					req.headers['authorization'] = 'BEARER ' + bearerToken;
 					expect(parseBearerToken(req)).eqls(bearerToken);
 				});
 
 				it('from form body', function () {
 					req.body = {
 						access_token: bearerToken
-					}
+					};
 					expect(parseBearerToken(req)).eqls(bearerToken);
 				});
 
 				it('from query', function () {
 					req.query = {
 						access_token: bearerToken
-					}
+					};
 					expect(parseBearerToken(req)).eqls(bearerToken);
 				});
 			});
@@ -143,10 +245,9 @@ describe('hyper-rest', function () {
 				});
 
 				it('invalid bearer token', function () {
-					return checkBearerToken(bearerToken)
-						.then(function (data) {
-							expect(data).null;
-						})
+					return checkBearerToken(bearerToken).then(function (data) {
+						expect(data).null;
+					});
 				});
 
 				it('valid bearer token exchanging for access token', function () {
@@ -157,7 +258,7 @@ describe('hyper-rest', function () {
 						})
 						.then(function (data) {
 							expect(data).eqls(token);
-						})
+						});
 				});
 			});
 
@@ -277,43 +378,6 @@ describe('hyper-rest', function () {
 			});
 		});
 
-		describe('Authorization server', function () {
-			describe('add an OAuth client registry record into mongodb', function () {
-				const clients = require('../auth2/db/mongodb/Clients'),
-					client_id = 'foo',
-					client = {
-						clientId: client_id
-					};
-
-				beforeEach(function (done) {
-					return clearDB(done);
-				});
-
-				it('新增新纪录', function () {
-					return clients.register(client).then(function (data) {
-						expect(data.id).not.null;
-						expect(data.clientId).eqls(client_id);
-					});
-				});
-
-				it('clientId必须唯一', function () {
-					const clientSchema = require('../auth2/db/mongodb/ClientSchema');
-					return dbSave(clientSchema, client)
-						.then(function () {
-							return clients.register(client);
-						})
-						.then(function () {
-							should.fail();
-						})
-						.catch(function (err) {
-							expect(err.message).eqls('client id already exists!');
-						});
-				});
-			});
-
-			describe('Registering an OAuth client with an authorization server', function () {});
-		});
-
 		describe('OAuth client', function () {
 			describe('Client state', function () {
 				const clientStateFactory = require('../auth2/ClientState'),
@@ -348,18 +412,6 @@ describe('hyper-rest', function () {
 			});
 
 			describe('SendAuthCodeGrantRequest', function () {
-				it('EncodeCredentials, 对credentials进行编码', function () {
-					const clientId = 'foo client id',
-						clientSecret = 'foo client secret';
-					const querystring = require('querystring');
-					const expected = new Buffer(
-						querystring.escape(clientId) + ':' + querystring.escape(clientSecret)
-					).toString('base64');
-
-					const encodeCredentials = require('../auth2/EncodeCredentials');
-					expect(encodeCredentials(clientId, clientSecret)).eqls(expected);
-				});
-
 				it('发出Post请求，通过Auth code换取access token', function () {
 					var http = require('http');
 					var app = require('express')();
@@ -562,7 +614,7 @@ describe('hyper-rest', function () {
 						.withArgs({
 							createHttpError: require('../express/CreateError'),
 							authRequestUriBuilder: require('../auth2/AuthorizationRequestUrlBuilder'),
-							encodeCredentials: require('../auth2/EncodeCredentials'),
+							encodeCredentials: require('../auth2/EncodeCredentials').encode,
 							clientStateFactory: require('../auth2/ClientState'),
 							authCodeGrantRequestFactory: require('../auth2/SendAuthCodeGrantRequest'),
 							callbackFactory: require('../auth2/AuthorizationResponseCallback')
@@ -573,6 +625,517 @@ describe('hyper-rest', function () {
 					var oauth = proxyquire('../auth2', stubs);
 					expect(oauth.client).eqls(client);
 				});
+			});
+		});
+
+		describe('Authorization server', function () {
+			describe('Clients', function () {
+				const clientId = 'foo',
+					createClients = require('../auth2/server/clients');
+				var findClient, clients, client;
+
+				beforeEach(function () {
+					client = {};
+					findClient = sinon.stub();
+					clients = createClients(findClient);
+				});
+
+				describe('Check client by its id and redirectUri', function () {
+					const clientId = 'foo',
+						redirectUri = '/redirecturl',
+						createClients = require('../auth2/server/clients');
+					var findClient, clients, client;
+
+					beforeEach(function () {
+						client = {};
+						findClient = sinon.stub();
+						clients = createClients(findClient);
+					});
+
+					it('unknown client', function () {
+						findClient.withArgs(clientId).resolves(undefined);
+						return clients
+							.checkClient(clientId)
+							.then(function () {
+								should.fail();
+							})
+							.catch(function (errMsg) {
+								expect(errMsg).eqls('Unknown client');
+							});
+					});
+
+					it('Invalid redirect URI', function () {
+						client.redirectUris = ['/url'];
+						findClient.withArgs(clientId).resolves(client);
+						return clients
+							.checkClient(clientId, redirectUri)
+							.then(function () {
+								should.fail();
+							})
+							.catch(function (errMsg) {
+								expect(errMsg).eqls('Invalid redirect URI');
+							});
+					});
+
+					it('valid client', function () {
+						client.redirectUris = ['/url', redirectUri];
+						findClient.withArgs(clientId).resolves(client);
+						return clients.checkClient(clientId, redirectUri).then(function (data) {
+							expect(data).eqls(client);
+						});
+					});
+				});
+			});
+
+			describe('Pending Authorization requests based on mongodb', function () {
+				const pendingRequests = require('../auth2/server/PendingAuthRequests'),
+					errMsg = 'the pending requestnot found';
+
+				beforeEach(function (done) {
+					return clearDB(done);
+				});
+
+				it('pending request not found', function () {
+					return pendingRequests
+						.find('foo')
+						.then(function () {
+							should.fail();
+						})
+						.catch(function (msg) {
+							expect(msg).eqls(errMsg);
+						});
+				});
+
+				it('get back pending request', function () {
+					const req = {
+						foo: 'foo',
+						fee: 'fee'
+					};
+					var code;
+					return pendingRequests
+						.save(req)
+						.then(function (data) {
+							code = data;
+							return pendingRequests.find(code);
+						})
+						.then(function (data) {
+							expect(data).eqls(req);
+							return pendingRequests
+								.find(code)
+								.then(function () {
+									should.fail();
+								})
+								.catch(function (msg) {
+									expect(msg).eqls(errMsg);
+								});
+						});
+				});
+			});
+
+			describe('Authorizing codes based on mongodb', function () {
+				const authCodes = require('../auth2/server/AuthorizingCodes'),
+					errMsg = 'the pending requestnot found';
+
+				beforeEach(function (done) {
+					return clearDB(done);
+				});
+
+				it('generate auth code', function () {
+					const req = {
+						foo: 'foo',
+						fee: 'fee'
+					};
+					return authCodes.generate(req).then(function (code) {
+						expect(code).should.true;
+					});
+				});
+			});
+
+			describe('Authorizing a client', function () {
+				const requestAgent = require('supertest'),
+					express = require('express'),
+					bodyParser = require('body-parser'),
+					createAuthServer = require('../auth2/server/AuthServer'),
+					defaultAuthPath = '/auth',
+					defaultErrorTemplate = 'error',
+					defaultAuthTemplate = 'approve';
+				var app, request, renderSpy, redirectSpy;
+				var oauth;
+
+				beforeEach(function () {
+					app = express();
+					request = requestAgent(app);
+					renderSpy = sinon.spy();
+					redirectSpy = sinon.spy();
+					app.use(
+						bodyParser.urlencoded({
+							extended: true
+						}),
+						function (req, res, next) {
+							res.render = renderSpy;
+							res.redirect = redirectSpy;
+							next();
+						}
+					);
+				});
+
+				it('either invalid client_id or the redirect_uri does not match', function () {
+					const errMsg = 'any err message';
+					var checkClient = sinon.stub();
+					checkClient.returns(Promise.reject(errMsg));
+					oauth = createAuthServer({
+						checkClient: checkClient
+					});
+					oauth.attachTo(app);
+					return request.get(defaultAuthPath).expect(function () {
+						return expect(renderSpy).calledWith(defaultErrorTemplate, {
+							error: errMsg
+						}).calledOnce;
+					});
+				});
+
+				it('ask the user for authorization', function () {
+					const clientId = 'foo client',
+						redirectUri = '/redirect/uri',
+						client = {
+							client: 'any client data'
+						};
+					var checkClient = sinon.stub();
+					checkClient.withArgs(clientId, redirectUri).resolves(client);
+
+					var reqId = '643';
+					var requestState = {
+						saveQuery: sinon.stub()
+					};
+					requestState.saveQuery.callsFake(function (arg) {
+						expect(arg.client_id).eqls(clientId);
+						expect(arg.redirect_uri).eqls(redirectUri);
+						return reqId;
+					});
+					oauth = createAuthServer({
+						checkClient: checkClient,
+						requestState: requestState
+					});
+					oauth.attachTo(app);
+					return request
+						.get(defaultAuthPath + '?client_id=' + clientId + '&redirect_uri=' + redirectUri)
+						.expect(function () {
+							return expect(renderSpy).calledWith(defaultAuthTemplate, {
+								reqId: reqId,
+								client: client
+							}).calledOnce;
+						});
+				});
+
+				it('pending auth request code not match', function () {
+					var requestState = {
+						getQuery: sinon.stub()
+					};
+					requestState.getQuery.returns(undefined);
+					oauth = createAuthServer({
+						requestState: requestState
+					});
+					oauth.attachTo(app);
+					return request.post(defaultAuthPath).expect(function () {
+						return expect(renderSpy).calledWith(defaultErrorTemplate, {
+							error: 'No matching authorization request'
+						}).calledOnce;
+					});
+				});
+
+				it('access denied', function () {
+					const redirectUri = '/redirect/uri';
+					var reqId = '643';
+					var query = {
+						redirect_uri: redirectUri
+					};
+					var requestState = {
+						getQuery: sinon.stub()
+					};
+					requestState.getQuery.withArgs(reqId).returns(query);
+					const uriRedirectToAuthClient = 'the url to redirect to AuthClient';
+					var buildUri = sinon.stub();
+					buildUri
+						.withArgs(redirectUri, {
+							error: 'access_denied'
+						})
+						.returns(uriRedirectToAuthClient);
+					oauth = createAuthServer({
+						buildUri: buildUri,
+						requestState: requestState
+					});
+					oauth.attachTo(app);
+					return request
+						.post(defaultAuthPath)
+						.set('content-type', 'application/x-www-form-urlencoded')
+						.send({
+							reqid: reqId
+						})
+						.expect(function () {
+							return expect(redirectSpy).calledWith(uriRedirectToAuthClient).calledOnce;
+						});
+				});
+
+				it('Response auth client with auth code', function () {
+					const redirectUri = '/redirect/uri',
+						state = 'eervervrevrver';
+					var reqId = '643';
+					var query = {
+						redirect_uri: redirectUri,
+						state: state
+					};
+					var requestState = {
+						getQuery: sinon.stub()
+					};
+					requestState.getQuery.withArgs(reqId).returns(query);
+					const code = 'dfvvfvwvgwdfvdfv';
+					var authCode = {
+						generate: sinon.stub()
+					};
+					authCode.generate.withArgs(query).resolves(code);
+					const uriRedirectToAuthClient = 'the url to redirect to AuthClient';
+					var buildUri = sinon.stub();
+					buildUri
+						.withArgs(redirectUri, {
+							code: code,
+							state: query.state
+						})
+						.returns(uriRedirectToAuthClient);
+					oauth = createAuthServer({
+						buildUri: buildUri,
+						requestState: requestState,
+						authCode: authCode
+					});
+					oauth.attachTo(app);
+					return request
+						.post(defaultAuthPath)
+						.set('content-type', 'application/x-www-form-urlencoded')
+						.send({
+							reqid: reqId,
+							approve: true
+						})
+						.expect(function () {
+							return expect(redirectSpy).calledWith(uriRedirectToAuthClient).calledOnce;
+						});
+				});
+			});
+
+			describe('parse client credentials from token request', function () {
+				const clientId = 'foo',
+					secret = 'abcd',
+					credentials = {
+						id: clientId,
+						secret: secret
+					},
+					valOfAuthorizationHeader = 'encoded client credentials';
+				const parseClientCredentialsFactory = require('../auth2/server/ParseCredentialsFromAccessTokenRequest');
+				var parseClientCredentials, decodeCredentials, req;
+
+				beforeEach(function () {
+					decodeCredentials = sinon.stub();
+					parseClientCredentials = parseClientCredentialsFactory(decodeCredentials);
+					req = {
+						headers: {},
+						body: {}
+					};
+				});
+
+				it('未包含', function () {
+					expect(parseClientCredentials(req)).undefined;
+				});
+
+				it('从Authorization header解析', function () {
+					req.headers.authorization = 'basic ' + valOfAuthorizationHeader;
+					decodeCredentials.withArgs(valOfAuthorizationHeader).returns(credentials);
+					expect(parseClientCredentials(req)).eqls(credentials);
+				});
+
+				it('从body解析', function () {
+					req.body = {
+						client_id: clientId,
+						client_secret: secret,
+						data: 'any data'
+					};
+					expect(parseClientCredentials(req)).eqls(credentials);
+				});
+			});
+
+			describe('authenticate client from token request', function () {
+				const clientId = 'foo',
+					secret = 'abcd',
+					credentials = {
+						id: clientId,
+						secret: secret
+					};
+				const authenticateClientFactory = require('../auth2/server/AuthenticateClient');
+				var authenticateClient, parseCredentials, authenticateCredentials, req;
+
+				beforeEach(function () {
+					parseCredentials = sinon.stub();
+					authenticateCredentials = sinon.stub();
+					authenticateClient = authenticateClientFactory(parseCredentials, authenticateCredentials);
+					req = {
+						data: 'any data of request'
+					};
+				});
+
+				it('Access Token请求中未包括client身份验证信息', function () {
+					parseCredentials.withArgs(req).returns(undefined);
+					return authenticateClient(req)
+						.then(function () {
+							should.fail();
+						})
+						.catch(function (errMsg) {
+							expect(errMsg).eqls('Invalid client');
+						});
+				});
+
+				it('未通过client身份验证', function () {
+					parseCredentials.withArgs(req).returns(credentials);
+					authenticateCredentials.withArgs(clientId, secret).resolves(false);
+					return authenticateClient(req)
+						.then(function () {
+							should.fail();
+						})
+						.catch(function (errMsg) {
+							expect(errMsg).eqls('Invalid client');
+						});
+				});
+
+				it('通过client身份验证', function () {
+					parseCredentials.withArgs(req).returns(credentials);
+					authenticateCredentials.withArgs(clientId, secret).resolves(true);
+					return authenticateClient(req).then(function (data) {
+						expect(data).eqls(clientId);
+					});
+				});
+			});
+
+			describe('Issuing a token', function () {
+				const requestAgent = require('supertest'),
+					express = require('express'),
+					bodyParser = require('body-parser'),
+					createAuthServer = require('../auth2/server/AuthServer'),
+					defaultTokenPath = '/token',
+					errMsg = 'any error message';
+				var app, request, theReq;
+				var oauth, authenticateClient, checkAuthCode, issueAccessToken;
+
+				beforeEach(function () {
+					app = express();
+					request = requestAgent(app);
+					app.use(
+						bodyParser.urlencoded({
+							extended: true
+						}),
+						function (req, res, next) {
+							theReq = req;
+							next();
+						}
+					);
+					authenticateClient = sinon.stub();
+					checkAuthCode = sinon.stub();
+					issueAccessToken = sinon.stub();
+				});
+
+				it('Authenticating the client - client未通过认证', function () {
+					authenticateClient.callsFake(function (arg) {
+						expect(arg).eqls(theReq);
+						return Promise.reject(errMsg);
+					});
+					oauth = createAuthServer({
+						authenticateClient: authenticateClient
+					});
+					oauth.attachTo(app);
+					return request.post(defaultTokenPath).expect(401, {
+						error: errMsg
+					});
+				});
+
+				it('check the grant_type', function () {
+					authenticateClient.callsFake(function (arg) {
+						expect(arg).eqls(theReq);
+						return Promise.resolve();
+					});
+					oauth = createAuthServer({
+						authenticateClient: authenticateClient
+					});
+					oauth.attachTo(app);
+					return request.post(defaultTokenPath).send('grant_type=foo').expect(400, {
+						error: 'unsupported grant type'
+					});
+				});
+
+				it('check auth code', function () {
+					authenticateClient.callsFake(function (arg) {
+						expect(arg).eqls(theReq);
+						return Promise.resolve();
+					});
+					checkAuthCode.returns(Promise.reject(errMsg));
+
+					oauth = createAuthServer({
+						authenticateClient: authenticateClient,
+						checkAuthCode: checkAuthCode
+					});
+					oauth.attachTo(app);
+					return request.post(defaultTokenPath).send('grant_type=authorization_code').expect(400, {
+						error: errMsg
+					});
+				});
+
+				it('response access token', function () {
+					const clientId = 'foo',
+						code = 'fdvdfvdfvqerv',
+						token = 'dcdjcdjcwdcwdc';
+					authenticateClient.callsFake(function (arg) {
+						expect(arg).eqls(theReq);
+						return Promise.resolve(clientId);
+					});
+					checkAuthCode.withArgs(code, clientId).resolves();
+					issueAccessToken.withArgs(clientId).resolves(token);
+
+					oauth = createAuthServer({
+						authenticateClient: authenticateClient,
+						checkAuthCode: checkAuthCode,
+						issueAccessToken: issueAccessToken
+					});
+					oauth.attachTo(app);
+					return request
+						.post(defaultTokenPath)
+						.send('grant_type=authorization_code&code=' + code)
+						.expect(200, {
+							access_token: token,
+							token_type: 'Bearer'
+						});
+				});
+			});
+
+			it('default auth server', function () {
+				var decodeCredentials = require('../auth2/EncodeCredentials').decode;
+				var parseCredentials = {data:'parseCredentials'};
+				var parseCredentialsFactory = sinon.stub();
+				parseCredentialsFactory.withArgs(decodeCredentials).returns(parseCredentials);
+				stubs['./ParseCredentialsFromAccessTokenRequest'] = parseCredentialsFactory;
+				var findClient = require('../auth2/db/mongodb/Clients').authenticate;			
+				var authenticateClient = { data: 'authenticateClient'};
+				var authenticateClientFactory = sinon.stub();
+				authenticateClientFactory.withArgs(parseCredentials, findClient).returns(authenticateClient);
+				stubs['./AuthenticateClient'] = authenticateClientFactory;
+				var checkAuthCode = {data: 'checkAuthCode'};
+				var issueAccessToken = {data: 'issueAccessToken'};
+
+				var authServer = {
+					data: 'auth server'
+				}
+				var authServerFactory = sinon.stub();
+				authServerFactory.withArgs({
+					authenticateClient: authenticateClient,
+					//checkAuthCode: checkAuthCode,
+					//issueAccessToken: issueAccessToken
+				}).returns(authServer);
+				stubs['./AuthServer'] = authServerFactory;
+				var defaultAuthServer = proxyquire('../auth2/server', stubs);
+				defaultAuthServer.should.be.authServer;
 			});
 		});
 
@@ -652,7 +1215,7 @@ describe('hyper-rest', function () {
 				return (
 					request
 					.post(defaultAuth2BasePath + defaultGrantPath)
-					//.set('Accept', 'application/x-www-form-urlencoded')
+					// .set('Accept', 'application/x-www-form-urlencoded')
 					.send('grant_type=' + grantType + '&client_id=' + clientId + '&client_secret=' + clientSecret)
 					.expect(200)
 				);
@@ -825,7 +1388,7 @@ describe('hyper-rest', function () {
 				beforeEach(function () {
 					oauth = auth2();
 					oauth.attachTo(app);
-					//return clearDB(done);
+					// return clearDB(done)
 				});
 
 				it('refresh token', function () {

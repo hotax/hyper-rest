@@ -10,7 +10,7 @@ module.exports = {
     client: createClient({
         createHttpError: setHttpResponseStatus,
         authRequestUriBuilder: buildAuthRequestUri,
-        encodeCredentials: encodeCredentials,
+        encodeCredentials: encodeCredentials.encode,
         clientStateFactory: createClientState,
         authCodeGrantRequestFactory: createAuthCodeGrantRequestSender,
         callbackFactory: clientCallbackEndpoint
