@@ -1,6 +1,5 @@
-var url = require('url')
-    , mongoose = require('mongoose')
-;
+var url = require('url'),
+    mongoose = require('mongoose');
 
 var beforeEachRegistered = false;
 var afterHookRegistered = false;
@@ -41,7 +40,10 @@ module.exports = function (uriString, options) {
 
     function clearDB(done) {
         if (db) return clearCollections(done);
-        mongoose.connect(dbURI, function (err, newDb) {
+        mongoose.connect(dbURI, {
+            useNewUrlParser: true,
+            /* other options */
+        }, function (err, newDb) {
             if (err) return done(err);
             db = newDb;
             clearCollections(done);
@@ -59,7 +61,9 @@ module.exports = function (uriString, options) {
                 if (collection.collectionName.match(/^system\./)) return --todo;
                 if (options.skip instanceof Array && options.skip.indexOf(collection.collectionName) > -1) return --todo;
 
-                collection.remove({}, {safe: true}, function () {
+                collection.remove({}, {
+                    safe: true
+                }, function () {
                     if (--todo === 0) done();
                 });
             });

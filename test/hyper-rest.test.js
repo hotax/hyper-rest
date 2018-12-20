@@ -1,6 +1,7 @@
 /**
  * Created by clx on 2017/10/9.
  */
+// require('./testhelper');
 var proxyquire = require('proxyquire'),
     path = require('path'),
     util = require('util'),
@@ -84,7 +85,7 @@ describe('hyper-rest', function () {
 
     describe('同数据库相关部件', function () {
         it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
-            process.env.MONGODB = 'mongodb://localhost/jingyin';
+            process.env.MONGODB = 'mongodb://localhost:27017/test';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
             connectDb(function () {});
         });
@@ -319,12 +320,10 @@ describe('hyper-rest', function () {
             });
 
             it('指定的资源目录不存在', function () {
-                descDir = path.join(__dirname, './data/fff');
-                const createLoader = function(){
-                    return require('../rests/DirectoryResourceDescriptorsLoader')(descDir);
-                }
-                const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', descDir);
-                assert.throws(createLoader, Error, errMsg);
+				descDir = path.join(__dirname, './data/fff');
+				const createLoader = require('../rests/DirectoryResourceDescriptorsLoader');
+				const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', descDir);
+				expect(() => createLoader(descDir)).to.throw(errMsg);
             });
 
             it('加载一个资源描述', function () {
@@ -338,17 +337,17 @@ describe('hyper-rest', function () {
 
         describe('对Rest服务的解析', function () {
             const bodyParser = require('body-parser'),
-                requestAgent = require('supertest'),
-                app = require('express')(),
-                request = requestAgent(app);
+                requestAgent = require('supertest');
+                
 
             var url, desc, currentResource;
             var selfUrl, urlResolveStub, restDescriptor;
 
             beforeEach(function () {
-                url = '/rests/foo';
-                app.use(bodyParser.json());
-                err = "any error ...."
+				url = '/rests/foo';
+				app = require('express')();
+				app.use(bodyParser.json());
+				request = requestAgent(app);
                 currentResource = {
                     getResourceId: function () {},
                     getUrl: function () {},
@@ -393,9 +392,9 @@ describe('hyper-rest', function () {
                 });
 
                 it('未知错误返回500内部错', function (done) {
-                    currentResource.getLinks.returns(Promise.reject(err));
+                    currentResource.getLinks.returns(Promise.reject("err"));
                     request.get(url)
-                        .expect(500, err, done);
+						.expect(500, done)
                 });
             });
 
@@ -576,10 +575,10 @@ describe('hyper-rest', function () {
                 });
 
                 it('未知错误返回500内部错', function (done) {
-                    createStub.returns(Promise.reject(err));
+                    createStub.returns(Promise.reject("err"));
                     request.post(url)
                         .send(reqBody)
-                        .expect(500, err, done);
+                        .expect(500, done);
                 });
             });
 
@@ -654,10 +653,10 @@ describe('hyper-rest', function () {
                 });
 
                 it('未知错误返回500内部错', function (done) {
-                    handlerStub.returns(Promise.reject(err));
+                    handlerStub.returns(Promise.reject("err"));
                     restDescriptor.attach(app, currentResource, url, desc);
                     request.get(url)
-                        .expect(500, err, done);
+                        .expect(500, done);
                 });
             });
 
@@ -889,6 +888,7 @@ describe('hyper-rest', function () {
                 };
 
                 restDesc = {
+					type: "READ",
                     rest: 'any rest descriptor'
                 };
 
@@ -914,68 +914,6 @@ describe('hyper-rest', function () {
             it('提供当前资源标识', function () {
                 var resource = resourceRegistry.attach(router, 'foo', desc);
                 expect(resource.getResourceId()).eql('foo');
-            });
-
-            describe('构建当前资源的URL', function () {
-                var fromResourceId, context, req;
-                var resource;
-                var expectedUrl, urlResolveStub;
-
-                beforeEach(function () {
-                    fromResourceId = 'fff';
-                    context = {};
-                    req = {
-                        params: {},
-                        query: {}
-                    }
-
-                    expectedUrl = "/expected/url";
-                    urlResolveStub = sinon.stub();
-                    stubs['../express/Url'] = {
-                        resolve: urlResolveStub
-                    };
-                });
-
-                it('无路径变量', function () {
-                    urlResolveStub.withArgs(req, url).returns(expectedUrl);
-                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-
-                    resource = resourceRegistry.attach(router, resourceId, desc);
-                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-                });
-
-                it('未定义迁移，缺省方式从上下文中取同路径变量名相同的属性值', function () {
-                    desc.url = '/url/:arg1/and/:arg2/and/:arg3';
-                    context.arg3 = '1234';
-                    req.params.arg2 = '3456';
-                    req.query.arg1 = '5678';
-
-                    urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234').returns(expectedUrl);
-                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-
-                    resource = resourceRegistry.attach(router, resourceId, desc);
-                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-                });
-
-                it('通过定义迁移指定路径变量的取值', function () {
-                    desc.transitions = {};
-                    desc.transitions[fromResourceId] = {
-                        arg1: 'query.foo',
-                        arg2: 'params.foo',
-                        arg3: 'context.foo'
-                    };
-                    desc.url = '/url/:arg1/and/:arg2/and/:arg3/and/:arg4';
-                    context.foo = '1234';
-                    context.arg4 = '9876';
-                    req.params.foo = '3456';
-                    req.query.foo = '5678';
-
-                    urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234/and/9876').returns(expectedUrl);
-                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-
-                    resource = resourceRegistry.attach(router, resourceId, desc);
-                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-                });
             });
 
             it('构建从一个资源迁移到另一个资源的URL', function () {
@@ -1021,7 +959,9 @@ describe('hyper-rest', function () {
                     rel: "fee",
                     href: "/fee"
                 }];
-                var getLinksStub = createPromiseStub([resourceId, context, req], [links]);
+                //var getLinksStub = createPromiseStub([resourceId, context, req], [links]);
+				var getLinksStub = sinon.stub()
+				getLinksStub.withArgs(resourceId, context, req).resolves(links);
 
                 resourceRegistry = require('../rests/ResourceRegistry');
                 resourceRegistry.setTransitionGraph({
@@ -1035,13 +975,13 @@ describe('hyper-rest', function () {
                     })
             });
 
-            it('资源定义错：未定义任何rest服务', function () {
-                delete desc.rests;
+			it('资源定义错：未定义任何rest服务列表', ()=>{
+				delete desc.rests;
                 expect(function () {
                     resourceRegistry.attach(router, resourceId, desc);
                 }).throw('no restful service is defined!');
-            });
-
+			});
+			
             it('资源定义错：未定义任何rest服务', function () {
                 desc.rests = [];
                 expect(function () {
@@ -1058,8 +998,72 @@ describe('hyper-rest', function () {
 
                 var resource = resourceRegistry.attach(router, resourceId, desc);
                 expect(attachSpy).calledWith(router, resource, url, restDesc);
-            });
+			}); 
+			
+			describe('构建当前资源的URL', function () {
+				var fromResourceId, context, req;
+				var resource;
+				var expectedUrl, urlResolveStub;
+	
+				beforeEach(function () {
+					fromResourceId = 'fff';
+					context = {};
+					req = {
+						params: {},
+						query: {}
+					}
+	
+					expectedUrl = "/expected/url";
+					urlResolveStub = sinon.stub();
+					stubs['../express/Url'] = {
+						resolve: urlResolveStub
+					};
+				});
+	
+				it('无路径变量', function () {
+					urlResolveStub.withArgs(req, url).returns(expectedUrl);
+					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+	
+					resource = resourceRegistry.attach(router, resourceId, desc);
+					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+				});
+	
+				it('未定义迁移，缺省方式从上下文中取同路径变量名相同的属性值', function () {
+					desc.url = '/url/:arg1/and/:arg2/and/:arg3';
+					context.arg3 = '1234';
+					req.params.arg2 = '3456';
+					req.query.arg1 = '5678';
+	
+					urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234').returns(expectedUrl);
+					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+	
+					resource = resourceRegistry.attach(router, resourceId, desc);
+					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+				});
+	
+				it('通过定义迁移指定路径变量的取值', function () {
+					desc.transitions = {};
+					desc.transitions[fromResourceId] = {
+						arg1: 'query.foo',
+						arg2: 'params.foo',
+						arg3: 'context.foo'
+					};
+					desc.url = '/url/:arg1/and/:arg2/and/:arg3/and/:arg4';
+					context.foo = '1234';
+					context.arg4 = '9876';
+					req.params.foo = '3456';
+					req.query.foo = '5678';
+	
+					urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234/and/9876').returns(expectedUrl);
+					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+	
+					resource = resourceRegistry.attach(router, resourceId, desc);
+					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+				});
+			}); 
         });
+
+		 
 
         describe("基本的资源状态迁移图解析器", function () {
             var context, req, transitionGraph;
@@ -1168,8 +1172,7 @@ describe('hyper-rest', function () {
                         ])
                     })
             });
-        })
-
+        });
     });
 
     describe('基于express实现', function () {

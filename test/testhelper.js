@@ -13,12 +13,14 @@ chai.use(chaiAsPromised);
 var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
-global.dbURI = 'mongodb://localhost/test';
+global.dbURI = 'mongodb://127.0.0.1:27017/test';
+global.mongoose = require('mongoose');
 global.clearDB = require('../db/mongoDb/clearDB')(dbURI);
 
 global.expect = chai.expect;
 global.assert = chai.assert;
 global.sinon = sinon;
+global.should = require('should');
 chai.use(chaiXml);
 chai.use(sinonChai);
 
@@ -38,7 +40,8 @@ global.insertDocsInSequential = function insertDocsInSequential(model, docs, cal
 };
 global.insertDocsInParallel = function insertDocsInParallel(model, docs, callback) {
     var result = [];
-    var finished = 0, errored = false;
+    var finished = 0,
+        errored = false;
 
     function done(err, data) {
         if (err) {

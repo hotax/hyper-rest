@@ -9,6 +9,7 @@ const fs = require('fs'),
 const DirectoryResourceDescriptorsLoader = function (dir) {
     if (!fs.existsSync(dir)) {
         const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', dir);
+        logger.error(errMsg);
         throw new Error(errMsg);
     }
     return {
