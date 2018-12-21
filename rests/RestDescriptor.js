@@ -193,20 +193,24 @@ const __entryHandler = function (context, restDesc, req, res) {
 };
 
 const __uploadHandler = (context, restDesc, req, res) => {
-    restDesc.handler.on('finish', () => {
-        return context.getLinks(null, req)
-            .then(function (links) {
-                res.set('Content-Type', MEDIA_TYPE);
-                return res.status(200).json({
-                    links: links
-                });
-            })
-            .catch(function (err) {
-                console.error(err);
-                return res.status(500).send(err);
-            })
+    req.pipe(req.busboy)
+    req.busboy.on('file', (fieldname, file, filename) => {
+        logger.debug('Uploading: ' + filename)
+        restDesc.handler.on('finish', () => {
+            return context.getLinks(null, req)
+                .then(function (links) {
+                    res.set('Content-Type', MEDIA_TYPE);
+                    return res.status(200).json({
+                        links: links
+                    });
+                })
+                .catch(function (err) {
+                    console.error(err);
+                    return res.status(500).send(err);
+                })
+        })
+        file.pipe(restDesc.handler)
     })
-    req.file.pipe(restDesc.handler)
 }
 
 const handlerMap = {

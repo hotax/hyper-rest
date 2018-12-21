@@ -7,6 +7,7 @@ const path = require('path'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     xmlBodyParser = require('express-xml-bodyparser'),
+    busboy = require('connect-busboy'),
     express = require('express'),
     app = express();
 
@@ -20,6 +21,7 @@ module.exports.begin = function (base) {
         app.use(cookieParser(process.env.SESSION_SECRET));
         app.use(bodyParser.urlencoded({extended: true}));
         app.use(bodyParser.json());
+        app.use(busboy());
         app.use(xmlBodyParser({
             explicitArray: false,
             normalize: false,
