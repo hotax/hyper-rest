@@ -206,7 +206,7 @@ const __uploadHandler = (context, restDesc, req, res) => {
                 return res.status(500).send(err);
             })
     })
-    req.pipe(restDesc.handler)
+    req.file.pipe(restDesc.handler)
 }
 
 const handlerMap = {
