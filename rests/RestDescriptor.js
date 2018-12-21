@@ -192,6 +192,23 @@ const __entryHandler = function (context, restDesc, req, res) {
         })
 };
 
+const __uploadHandler = (context, restDesc, req, res) => {
+    restDesc.handler.on('finish', () => {
+        return context.getLinks(null, req)
+            .then(function (links) {
+                res.set('Content-Type', MEDIA_TYPE);
+                return res.status(200).json({
+                    links: links
+                });
+            })
+            .catch(function (err) {
+                console.error(err);
+                return res.status(500).send(err);
+            })
+    })
+    req.pipe(restDesc.handler)
+}
+
 const handlerMap = {
     entry: {
         method: "get",
@@ -216,8 +233,12 @@ const handlerMap = {
     read: {
         method: "get",
         handler: __readHandler
+    },
+    upload: {
+        method: "post",
+        handler: __uploadHandler
     }
-};
+}
 
 module.exports = {
     attach: function (router, currentResource, urlPattern, restDesc) {
