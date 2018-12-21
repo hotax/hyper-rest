@@ -196,7 +196,8 @@ const __uploadHandler = (context, restDesc, req, res) => {
     req.pipe(req.busboy)
     req.busboy.on('file', (fieldname, file, filename) => {
         logger.debug('Uploading: ' + filename)
-        restDesc.handler.on('finish', () => {
+        let writable = restDesc.handler()
+        writable.on('finish', () => {
             return context.getLinks(null, req)
                 .then(function (links) {
                     res.set('Content-Type', MEDIA_TYPE);
@@ -204,12 +205,11 @@ const __uploadHandler = (context, restDesc, req, res) => {
                         links: links
                     });
                 })
-                .catch(function (err) {
-                    console.error(err);
-                    return res.status(500).send(err);
+                .catch(() => {
+                    return res.status(500).end()
                 })
         })
-        file.pipe(restDesc.handler)
+        file.pipe(writable)
     })
 }
 
