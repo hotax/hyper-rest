@@ -16,7 +16,28 @@ const __attachHandler = function (router, method, context, urlPattern, restDesc)
         return handlerMap[restDesc.type].handler(context, restDesc, req, res);
     });
 };
-
+const __getHandler = function (context, restDesc, req, res) {
+    var query = Object.assign({}, req.query);
+    var representation;
+    return restDesc.handler(query)
+        .then(function (data) {
+            var self = URL.resolve(req, req.originalUrl);
+            representation = {
+                data: data,
+                self: self
+            };
+            return context.getLinks(data, req);
+        })
+        .then(function (links) {
+            representation.links = links;
+            res.set('Content-Type', MEDIA_TYPE);
+            return res.status(200).json(representation);
+        })
+        .catch(function (err) {
+            console.error(err);
+            return res.status(500).send(err);
+        })
+};
 const __readHandler = function (context, restDesc, req, res) {
     var representation;
     return restDesc.handler(req, res)
@@ -218,6 +239,10 @@ const handlerMap = {
         method: "get",
         handler: __entryHandler
     },
+    get: {
+        method: "get",
+        handler: __getHandler
+    },
     create: {
         method: "post",
         handler: __createHandler
@@ -247,9 +272,9 @@ const handlerMap = {
 module.exports = {
     attach: function (router, currentResource, urlPattern, restDesc) {
         var type = restDesc.type.toLowerCase();
-        if (type === 'get') {
+        /* if (type === 'get') {
             return router[type](urlPattern, restDesc.handler);
-        }
+        } */
         return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
     }
 }
