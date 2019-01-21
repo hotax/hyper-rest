@@ -272,9 +272,6 @@ const handlerMap = {
 module.exports = {
     attach: function (router, currentResource, urlPattern, restDesc) {
         var type = restDesc.type.toLowerCase();
-        /* if (type === 'get') {
-            return router[type](urlPattern, restDesc.handler);
-        } */
         return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
     }
 }
