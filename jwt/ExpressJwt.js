@@ -62,7 +62,7 @@ const expressJwt = (app, config) => {
     if (!config.getUser) throw 'getUser should be required for JWT'
     __config = config
     defaultSignOptions.expiresIn = __config.expiresIn || defaultSignOptions.expiresIn
-    app.use(__config.baseUrl || defaultBaseUrl, forAll)
+    app.all(__config.baseUrl || defaultBaseUrl, forAll)
     app.post(__config.loginUrl || defaultLoginUrl, authenticate)
 }
 
