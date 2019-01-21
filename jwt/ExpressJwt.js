@@ -25,7 +25,7 @@ const forAll = (req, res, next) => {
                 return __config.getUser(decoded.user)
                     .then(user => {
                         req.user = user
-                        return next()
+                        next()
                     })
                     .catch(() => {})
             }
