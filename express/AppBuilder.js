@@ -13,7 +13,7 @@ const path = require('path'),
 
 module.exports.begin = function (base) {
     var defaultViewsPath = path.join(base, 'client/views');
-    var __resourceRegistry;
+    var __jwt, __jwtConfig, __resourceRegistry;
     var viewEngine;
 
     function initappobject() {
@@ -54,6 +54,11 @@ module.exports.begin = function (base) {
             store.attachTo(app);
             return appBuilder;
         },
+        setJwt: (jwt, config) => {
+            __jwt = jwt
+            __jwtConfig = config
+            return appBuilder;
+        },
         setResources: function (resourceRegistry, resources) {
             __resourceRegistry = {
                 attachTo: function (router) {
@@ -73,6 +78,7 @@ module.exports.begin = function (base) {
         },
         end: function () {
             if (viewEngine) viewEngine.attachTo(app);
+            if(__jwt) __jwt(app, __jwtConfig);
             if (__resourceRegistry) __resourceRegistry.attachTo(app);
             return appBuilder;
         },
