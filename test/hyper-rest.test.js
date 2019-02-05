@@ -664,8 +664,8 @@ describe('hyper-rest', function () {
                 var handler, id, version, body, doc, modifiedDate;
                 beforeEach(function () {
                     handler = sinon.stub({
-                        condition: function (id, version) {},
-                        handle: function (doc, body) {}
+                        condition: ()=>{},
+                        handle: ()=>{}
                     });
                     desc = {
                         type: 'update',
@@ -684,99 +684,145 @@ describe('hyper-rest', function () {
                     restDescriptor.attach(app, currentResource, url, desc);
                 });
 
-                it('请求中未包含条件', function (done) {
-                    desc.conditional = true;
-                    request.put("/url/" + id)
-                        .expect(403, "client must send a conditional request", done);
-                });
+                describe('条件请求', () => {
+                    it('未定义handler', function (done) {
+                        delete desc.handler
+                        request.put("/url/" + id)
+                            .expect(501, done);  // response "501: Not Implemented"
+                    });
+    
+                    it('请求中未包含条件', function (done) {
+                        request.put("/url/" + id)
+                            .expect(428, done);
+                    });
+    
+                    it('请求中If-Unmodified-Since的值不是一个有效的HTTP日期, 故条件被忽略', function (done) {
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate.toJSON())
+                            .expect(428, done);
+                    });
+    
+                    it('未定义条件校验方法', function (done) {
+                        delete desc.handler.condition
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(501, done);
+                    });
+    
+                    it('条件校验方法不是一个函数', function (done) {
+                        desc.handler.condition = 'not a function'
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(501, done);
+                    });
+    
+                    it('未定义处理方法', function (done) {
+                        delete desc.handler.handle
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(501, done);
+                    });
+    
+                    it('处理方法不是一个函数', function (done) {
+                        desc.handler.handle = 'not a function'
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(501, done);
+                    });
+    
+                    it('条件校验出错', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).rejects()
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(500, done)
+                    });
+    
+                    it('不满足请求条件', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).resolves(false)
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .expect(412, done)
+                    });
+    
+                    it('处理出错', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.handle.withArgs(id, body).rejects()
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .send(body)
+                            .expect(500, done)
+                    });
+    
+                    it('条件请求下文档状态不一致', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.handle.withArgs(id, body).resolves()
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .send(body)
+                            .expect(409, done)
+                    });
+    
+                    it('满足请求条件, 并正确响应', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.handle.withArgs(id, body).resolves({
+                            modifiedDate: modifiedDate
+                        })
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .send(body)
+                            .expect("Last-Modified", modifiedDate.toString())
+                            .expect(204, done);
+                    });
 
-                it('不满足请求条件', function (done) {
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(false));
-                    request.put("/url/" + id)
-                        .set("If-Match", version)
-                        .expect(412, done);
-                });
+                    it('满足请求条件, 并正确响应 - 可正确处理JSON日期', function (done) {
+                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.handle.withArgs(id, body).resolves({
+                            modifiedDate: modifiedDate.toJSON()
+                        })
+                        request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
+                            .send(body)
+                            .expect("Last-Modified", modifiedDate.toString())
+                            .expect(204, done);
+                    });
+                })
 
-                it('满足请求条件, 但handle未返回任何资源最新状态控制信息', function (done) {
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(true));
-                    err = "handler did not promise any state version info ....";
-                    handler.handle.withArgs(id, body).returns(Promise.resolve({}));
-                    request.put("/url/" + id)
-                        .set("If-Match", version)
-                        .send(body)
-                        .expect(500, err, done);
-                });
+                describe('无条件请求', () => {
+                    beforeEach(() => {
+                        desc.conditional = false
+                    })
+    
+                    it('处理出错', function (done) {
+                        handler.handle.withArgs(id, body).rejects()
+                        request.put("/url/" + id)
+                            .send(body)
+                            .expect(500, done)
+                    });
 
-                it('满足请求条件, 并正确响应', function (done) {
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(true));
-                    handler.handle.returns(Promise.resolve({
-                        __v: version,
-                        modifiedDate: modifiedDate
-                    }));
-                    request.put("/url/" + id)
-                        .set("If-Match", version)
-                        .send(body)
-                        .expect("ETag", version)
-                        .expect("Last-Modified", modifiedDate.toJSON())
-                        .expect(204, done);
-                });
-
-                it('未找到文档', function (done) {
-                    var reason = "Not-Found";
-                    handler.handle.withArgs(id, body).returns(Promise.reject(reason));
-                    request.put("/url/" + id)
-                        .send(body)
-                        .expect(404, done);
-                });
-
-                it("文档状态不一致", function (done) {
-                    var reason = "Concurrent-Conflict";
-                    handler.handle.withArgs(id, body).returns(Promise.reject(reason));
-                    request.put("/url/" + id)
-                        .send(body)
-                        .expect(304, done);
-                });
-
-                it("无新的评审内容需要更新", function (done) {
-                    var reason = "Nothing";
-                    handler.handle.withArgs(id, body).returns(Promise.reject(reason));
-                    request.put("/url/" + id)
-                        .send(body)
-                        .expect(204, done);
-                });
-
-                it('响应更新失败', function (done) {
-                    var reason = "conflict";
-                    desc.response = {
-                        conflict: {
-                            code: 409,
-                            err: "here is the cause"
-                        }
-                    };
-                    handler.handle.withArgs(id, body).returns(Promise.reject(reason));
-                    request.put("/url/" + id)
-                        .send(body)
-                        .expect(409, "here is the cause", done);
-                });
-
-                it('无请求条件, 正确响应', function (done) {
-                    handler.handle.withArgs(id, body).returns(Promise.resolve({
-                        __v: version,
-                        modifiedDate: modifiedDate
-                    }));
-                    request.put("/url/" + id)
-                        .send(body)
-                        .expect("ETag", version)
-                        .expect("Last-Modified", modifiedDate.toJSON())
-                        .expect(204, done);
-                });
-
-                it('未能识别的错误返回500内部错', function (done) {
-                    err = "foo";
-                    handler.handle.returns(Promise.reject(err));
-                    request.put(url)
-                        .expect(500, err, done);
-                });
+                    it('未找到文档或状态不一致', function (done) {
+                        handler.handle.withArgs(id, body).resolves()
+                        request.put("/url/" + id)
+                            .send(body)
+                            .expect(409, done);
+                    });
+    
+                    it("修改日期无效", function (done) {
+                        handler.handle.withArgs(id, body).resolves({modifiedDate: 'invalid date'})
+                        request.put("/url/" + id)
+                            .send(body)
+                            .expect(409, done);
+                    });
+    
+                    it('无条件请求, 正确响应', function (done) {
+                        handler.handle.withArgs(id, body).resolves({
+                            modifiedDate: modifiedDate
+                        })
+                        request.put("/url/" + id)
+                            .send(body)
+                            .expect("Last-Modified", modifiedDate.toString())
+                            .expect(204, done);
+                    });
+                })
             });
 
             describe('删除服务', function () {

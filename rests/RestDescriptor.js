@@ -9,7 +9,15 @@ const MEDIA_TYPE = 'application/vnd.hotex.com+json',
     REASON_NOT_FOUND = 'not-found';
 
 const URL = require('../express/Url'),
+    __ = require('underscore'),
+    moment = require('moment'),
     logger = require('../app/Logger');
+
+const __sendRes = (res, state, data) => {
+    res.status(state)
+    if (data) res.send(data)
+    res.end()
+}
 
 const __attachHandler = function (router, method, context, urlPattern, restDesc) {
     return router[method](urlPattern, function (req, res) {
@@ -137,45 +145,67 @@ const __deleteHandler = function (context, restDesc, req, res) {
             return res.status(500).send(reason);
         })
 };
-const __updateHandler = function (context, restDesc, req, res) {
-    var id = req.params["id"];
-    var etag = req.get("If-Match");
-    var aPromis = etag ? restDesc.handler.condition(id, etag) :
-        !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
-    return aPromis
-        .then(function (data) {
-            if (!data) return Promise.reject(REASON_IF_MATCH);
-            var body = req.body;
-            return restDesc.handler.handle(id, body);
+
+const __updateHandler = (context, restDesc, req, res) => {
+    function __doHandle() {
+        if (!restDesc.handler || !restDesc.handler.handle || !__.isFunction(restDesc.handler.handle))
+             return Promise.reject(501)
+        let {
+            conditional
+        } = restDesc
+        if (__.isUndefined(conditional)) conditional = true
+        return conditional ? __conditionalHandle() : __handle()
+    }
+
+    function __conditionalHandle() {
+        if (!restDesc.handler.condition || !__.isFunction(restDesc.handler.condition)) return Promise.reject(501)
+        let ifUnmodifiedSince = req.get('If-Unmodified-Since')
+        if (!ifUnmodifiedSince) return Promise.reject(428)
+        let sinceDate = moment(ifUnmodifiedSince)
+        if (!sinceDate.isValid()) return Promise.reject(428)
+        sinceDate = sinceDate.toDate()
+        if (sinceDate.toString() !== ifUnmodifiedSince) return Promise.reject(428)
+
+        let id = req.params["id"];
+        return restDesc.handler.condition(id, sinceDate)
+            .then(valid => {
+                if (!valid) return Promise.reject(412)
+                return restDesc.handler.handle(id, req.body);
+            })
+            .then(data => {
+                let {
+                    modifiedDate
+                } = data || {}
+                if (!modifiedDate) return Promise.reject(409)
+                modifiedDate = moment(modifiedDate)
+                if (!modifiedDate.isValid()) return Promise.reject(409)
+                res.set('Last-Modified', modifiedDate.toDate().toString())
+                return __sendRes(res, 204)
+            })
+    }
+
+    function __handle() {
+        let id = req.params["id"];
+        return restDesc.handler.handle(id, req.body)
+            .then(data => {
+                let {
+                    modifiedDate
+                } = data || {}
+                if (!modifiedDate) return Promise.reject(409)
+                modifiedDate = moment(modifiedDate)
+                if (!modifiedDate.isValid()) return Promise.reject(409)
+                res.set('Last-Modified', modifiedDate.toDate().toString())
+                return __sendRes(res, 204)
+            })
+    }
+
+    return __doHandle()
+        .catch(err => {
+            if (__.isError(err)) err = 500
+            return __sendRes(res, err)
         })
-        .then(function (data) {
-            if (!data || !data.__v && !data.modifiedDate) {
-                return Promise.reject("handler did not promise any state version info ....");
-            }
-            if (data.__v) res.set('ETag', data.__v);
-            if (data.modifiedDate) res.set('Last-Modified', data.modifiedDate.toJSON());
-            return res.status(204).end();
-        })
-        .catch(function (reason) {
-            //TODO:需要处理reason不是String类型的情况，如mongoose error：当ID多一位数字，如5a110479d1036d4dd0dc4aed1就是一个非法ID
-            if (reason.toLowerCase() === REASON_FORBIDDEN)
-                return res.status(403).send("client must send a conditional request").end();
-            if (reason.toLowerCase() === REASON_IF_MATCH)
-                return res.status(412).end();
-            if (reason.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end(); //Concurrent-Conflict
-            if (reason.toLowerCase() === REASON_CONCURRENT_CONFLICT)
-                return res.status(304).end();
-            if (reason.toLowerCase() === REASON_NOTHING)
-                return res.status(204).end();
-            if (restDesc.response && restDesc.response[reason])
-                return res.status(restDesc.response[reason].code)
-                    .send(restDesc.response[reason].err)
-                    .end();
-            console.error(reason);
-            return res.status(500).send(reason);
-        })
-};
+}
+
 const __createHandler = function (context, restDesc, req, res) {
     var urlToCreatedResource, targetObject;
     return restDesc.handler(req.body)
