@@ -6,6 +6,7 @@ var proxyquire = require('proxyquire'),
     path = require('path'),
     util = require('util'),
     mongoose = require('mongoose'),
+    moment = require('moment'),
     Schema = mongoose.Schema;
 
 describe('hyper-rest', function () {
@@ -698,49 +699,45 @@ describe('hyper-rest', function () {
     
                     it('请求中If-Unmodified-Since的值不是一个有效的HTTP日期, 故条件被忽略', function (done) {
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate.toJSON())
+                            .set("If-Unmodified-Since", modifiedDate.toString())
                             .expect(428, done);
                     });
     
                     it('未定义条件校验方法', function (done) {
                         delete desc.handler.condition
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
                             .expect(501, done);
                     });
     
                     it('条件校验方法不是一个函数', function (done) {
                         desc.handler.condition = 'not a function'
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
                             .expect(501, done);
                     });
     
                     it('未定义处理方法', function (done) {
                         delete desc.handler.handle
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
                             .expect(501, done);
                     });
     
                     it('处理方法不是一个函数', function (done) {
                         desc.handler.handle = 'not a function'
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
                             .expect(501, done);
                     });
     
                     it('条件校验出错', function (done) {
                         handler.condition.withArgs(id, modifiedDate).rejects()
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .expect(500, done)
                     });
     
                     it('不满足请求条件', function (done) {
                         handler.condition.withArgs(id, modifiedDate).resolves(false)
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .expect(412, done)
                     });
     
@@ -748,7 +745,7 @@ describe('hyper-rest', function () {
                         handler.condition.withArgs(id, modifiedDate).resolves(true)
                         handler.handle.withArgs(id, body).rejects()
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .send(body)
                             .expect(500, done)
                     });
@@ -757,7 +754,7 @@ describe('hyper-rest', function () {
                         handler.condition.withArgs(id, modifiedDate).resolves(true)
                         handler.handle.withArgs(id, body).resolves()
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .send(body)
                             .expect(409, done)
                     });
@@ -768,7 +765,7 @@ describe('hyper-rest', function () {
                             modifiedDate: modifiedDate
                         })
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .send(body)
                             .expect("Last-Modified", modifiedDate.toString())
                             .expect(204, done);
@@ -780,7 +777,7 @@ describe('hyper-rest', function () {
                             modifiedDate: modifiedDate.toJSON()
                         })
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Unmodified-Since", moment(modifiedDate).toString())
                             .send(body)
                             .expect("Last-Modified", modifiedDate.toString())
                             .expect(204, done);
