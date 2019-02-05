@@ -163,7 +163,7 @@ const __updateHandler = (context, restDesc, req, res) => {
         if (!ifUnmodifiedSince) return Promise.reject(428)
         let sinceDate = moment(ifUnmodifiedSince)
         if (!sinceDate.isValid()) return Promise.reject(428)
-        if (sinceDate.toString() !== ifUnmodifiedSince) return Promise.reject(428)
+        // if (sinceDate.toString() !== ifUnmodifiedSince) return Promise.reject(428)
 
         let id = req.params["id"];
         return restDesc.handler.condition(id, sinceDate.toDate())

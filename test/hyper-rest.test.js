@@ -699,7 +699,7 @@ describe('hyper-rest', function () {
     
                     it('请求中If-Unmodified-Since的值不是一个有效的HTTP日期, 故条件被忽略', function (done) {
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate.toString())
+                            .set("If-Unmodified-Since", 'invalid date')
                             .expect(428, done);
                     });
     
