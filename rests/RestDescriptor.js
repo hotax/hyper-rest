@@ -147,9 +147,19 @@ const __deleteHandler = function (context, restDesc, req, res) {
 };
 
 const __updateHandler = (context, restDesc, req, res) => {
+    function __doResponse(data) {
+        let {
+            modifiedDate
+        } = data || {}
+        if (!modifiedDate) return Promise.reject(409)
+        if (!moment(modifiedDate).isValid()) return Promise.reject(409)
+        res.set('Last-Modified', modifiedDate)
+        return __sendRes(res, 204)
+    }
+
     function __doHandle() {
         if (!restDesc.handler || !restDesc.handler.handle || !__.isFunction(restDesc.handler.handle))
-             return Promise.reject(501)
+            return Promise.reject(501)
         let {
             conditional
         } = restDesc
@@ -161,25 +171,15 @@ const __updateHandler = (context, restDesc, req, res) => {
         if (!restDesc.handler.condition || !__.isFunction(restDesc.handler.condition)) return Promise.reject(501)
         let ifUnmodifiedSince = req.get('If-Unmodified-Since')
         if (!ifUnmodifiedSince) return Promise.reject(428)
-        let sinceDate = moment(ifUnmodifiedSince)
-        if (!sinceDate.isValid()) return Promise.reject(428)
-        // if (sinceDate.toString() !== ifUnmodifiedSince) return Promise.reject(428)
 
         let id = req.params["id"];
-        return restDesc.handler.condition(id, sinceDate.toDate())
+        return restDesc.handler.condition(id, ifUnmodifiedSince)
             .then(valid => {
                 if (!valid) return Promise.reject(412)
                 return restDesc.handler.handle(id, req.body);
             })
             .then(data => {
-                let {
-                    modifiedDate
-                } = data || {}
-                if (!modifiedDate) return Promise.reject(409)
-                modifiedDate = moment(modifiedDate)
-                if (!modifiedDate.isValid()) return Promise.reject(409)
-                res.set('Last-Modified', modifiedDate.toDate().toString())
-                return __sendRes(res, 204)
+                return __doResponse(data)
             })
     }
 
@@ -187,14 +187,7 @@ const __updateHandler = (context, restDesc, req, res) => {
         let id = req.params["id"];
         return restDesc.handler.handle(id, req.body)
             .then(data => {
-                let {
-                    modifiedDate
-                } = data || {}
-                if (!modifiedDate) return Promise.reject(409)
-                modifiedDate = moment(modifiedDate)
-                if (!modifiedDate.isValid()) return Promise.reject(409)
-                res.set('Last-Modified', modifiedDate.toDate().toString())
-                return __sendRes(res, 204)
+                return __doResponse(data)
             })
     }
 
