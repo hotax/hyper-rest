@@ -437,7 +437,7 @@ describe('hyper-rest', function () {
                         page: 1,
                         total: 200
                     };
-                    searchStub.withArgs(reqQuery).returns(Promise.resolve(resultCollection));
+                    searchStub.withArgs(reqQuery).resolves(resultCollection)
 
                     var expectedLinks = [{
                             rel: 'rel1',
@@ -485,6 +485,7 @@ describe('hyper-rest', function () {
                                             href: refElement1
                                         },
                                         data: {
+                                            id: '001',
                                             foo: 'foo 1',
                                             fee: 'fee 1'
                                         }
@@ -495,6 +496,7 @@ describe('hyper-rest', function () {
                                             href: refElement2
                                         },
                                         data: {
+                                            id: '002',
                                             foo: 'foo 2',
                                             fee: 'fee 2'
                                         }

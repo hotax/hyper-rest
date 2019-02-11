@@ -91,7 +91,9 @@ const __queryHandler = function (context, restDesc, req, res) {
             data.items.forEach(function (itemData) {
                 var href = context.getTransitionUrl(restDesc.element, itemData, req);
                 var copy = Object.assign({}, itemData);
-                delete copy['id'];
+                
+                // TODO: 暂时保留id用于查询时可作为查询条件取值，以后应通过URL提供查询条件取值，例如查询指定料品的订单或采购单等
+                // delete copy['id']
                 var item = {
                     link: {
                         rel: restDesc.element,
