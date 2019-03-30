@@ -313,6 +313,61 @@ describe('hyper-rest', function () {
     });
 
     describe('Restful', function () {
+        describe('UrlBuilder', () => {
+            const createUrlBuilder = require('../rests/UrlBuilder'),
+            urlTemplate = '/rest/:foo/sec1',
+            paramVal = 'paramVal',
+            expectedUrl = '/rest/' + paramVal + '/sec1',
+            resourceId = 'fooid',
+            context = {context: 'any data of context'},
+            req = {params:{}, query:{}},
+            resourceUrlParamsMap = {};
+            let urlBuilder
+    
+            beforeEach(()=>{
+                urlBuilder = createUrlBuilder(urlTemplate, resourceUrlParamsMap)
+            })
+    
+            it('无变量Url', () => {
+                const url = '/rest/foo/sec'
+                urlBuilder = createUrlBuilder(url)
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(url)
+            })
+    
+            it('变量在上下文中', () => {
+                context.foo = paramVal
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+    
+            it('变量在请求变量中', () => {
+                req.params.foo = paramVal
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+    
+            it('变量在请求查询变量中', () => {
+                req.query.foo = paramVal
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+    
+            it('指定变量取值为上下文属性值', () => {
+                context.fldVal = paramVal
+                resourceUrlParamsMap[resourceId] = {foo: 'context.fldVal'}
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+    
+            it('指定变量取值为请求变量值', () => {
+                req.params.fldVal = paramVal
+                resourceUrlParamsMap[resourceId] = {foo: 'params.fldVal'}
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+    
+            it('指定变量取值为请求查询变量值', () => {
+                req.query.fldVal = paramVal
+                resourceUrlParamsMap[resourceId] = {foo: 'query.fldVal'}
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+        })
+
         describe('基于目录内资源描述文件的资源加载器', function () {
             var descDir, loader;
 
