@@ -1,6 +1,8 @@
 const pathToRegexp = require('path-to-regexp'),
     __ = require('underscore')
 
+let __urlResolver
+
 function parseUrlPattern(urlPattern) {
     let pattern = {
         keys: []
@@ -42,7 +44,9 @@ class UrlBuilder {
                 })
             }
         }
-        return this.__urlPattern.toPath(params);
+        let path = this.__urlPattern.toPath(params);
+        // TODO: 考虑是否一定需要完整的URL 
+        return __urlResolver ? __urlResolver(req, path) : path
     }
 }
 
@@ -50,4 +54,7 @@ function createUrlBuilder(urlTemplete, resourceUrlParamMap) {
     return new UrlBuilder(urlTemplete, resourceUrlParamMap)
 }
 
-module.exports = createUrlBuilder
+module.exports = (urlResolver) => {
+    __urlResolver = urlResolver
+    return createUrlBuilder
+}

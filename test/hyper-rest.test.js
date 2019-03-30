@@ -314,17 +314,17 @@ describe('hyper-rest', function () {
 
     describe('Restful', function () {
         describe('UrlBuilder', () => {
-            const createUrlBuilder = require('../rests/UrlBuilder'),
-            urlTemplate = '/rest/:foo/sec1',
+            const urlTemplate = '/rest/:foo/sec1',
             paramVal = 'paramVal',
             expectedUrl = '/rest/' + paramVal + '/sec1',
             resourceId = 'fooid',
             context = {context: 'any data of context'},
             req = {params:{}, query:{}},
             resourceUrlParamsMap = {};
-            let urlBuilder
+            let createUrlBuilder, urlBuilder
     
             beforeEach(()=>{
+                createUrlBuilder = require('../rests/UrlBuilder')()
                 urlBuilder = createUrlBuilder(urlTemplate, resourceUrlParamsMap)
             })
     
@@ -332,6 +332,15 @@ describe('hyper-rest', function () {
                 const url = '/rest/foo/sec'
                 urlBuilder = createUrlBuilder(url)
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(url)
+            })
+
+            it('可以指定一个完整URL解析器', () => {
+                const url = '/rest/foo/sec'
+                const urlResolver = sinon.stub()
+                urlResolver.withArgs(req, url).returns(expectedUrl)
+                createUrlBuilder = require('../rests/UrlBuilder')(urlResolver)
+                urlBuilder = createUrlBuilder(url)
+                expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
     
             it('变量在上下文中', () => {
@@ -388,6 +397,110 @@ describe('hyper-rest', function () {
                     foo: fooDesc
                 });
             });
+        });
+
+        describe("基本的资源状态迁移图解析器", function () {
+            const context = {
+                    context: 'any context object'
+                },
+                req = {
+                    req: 'the web request'
+                },
+                graph = {
+                    resource1: {
+                        rel1: "foo",
+                        rel2: "fee"
+                    },
+                    resource2: {
+                        rel3: "fuu"
+                    }
+                }
+            fooUrl = '/url/foo',
+                feeUrl = '/url/fee',
+                createTransitionGraph = require('../rests/BaseTransitionGraph');
+    
+            let linkParser, transitionGraph;
+        
+            beforeEach(function () {
+                linkParser = sinon.stub();
+                linkParser.withArgs("resource1", 'foo', context, req).returns(fooUrl);
+                linkParser.withArgs("resource1", 'fee', context, req).returns(feeUrl);
+    
+                transitionGraph = createTransitionGraph(graph, linkParser);
+                transCondStub = sinon.stub();
+            });
+    
+            it("最简单的迁移定义", function () {
+                const links = transitionGraph.getLinks("resource1", context, req)
+                expect(links).eql([{
+                        rel: "rel1",
+                        href: fooUrl
+                    },
+                    {
+                        rel: "rel2",
+                        href: feeUrl
+                    },
+                ])
+            });
+    
+            describe('以对象表达迁移', () => {
+                let transCondStub;
+    
+                beforeEach(function () {
+                    transCondStub = sinon.stub();
+                })
+    
+                it('至少应包含迁移目标资源Id', function () {
+                    graph.resource1.rel2 = {
+                        id: "fee"
+                    };
+    
+                    const links = transitionGraph.getLinks("resource1", context, req)
+                    expect(links).eql([{
+                            rel: "rel1",
+                            href: fooUrl
+                        },
+                        {
+                            rel: "rel2",
+                            href: feeUrl
+                        },
+                    ])
+                });
+    
+                it("可以为一迁移定义一个迁移条件 - 未满足迁移条件", function () {
+                    transCondStub.withArgs(context, req).returns(false);
+                    graph.resource1.rel2 = {
+                        id: "fee",
+                        condition: transCondStub
+                    };
+        
+                    const links = transitionGraph.getLinks("resource1", context, req)
+                    expect(links).eql([{
+                            rel: "rel1",
+                            href: fooUrl
+                        }
+                    ])
+                });
+    
+                it("可以为一迁移定义一个迁移条件 - 满足迁移条件", function () {
+                    transCondStub.withArgs(context, req).returns(true);
+                    graph.resource1.rel2 = {
+                        id: "fee",
+                        condition: transCondStub
+                    };
+        
+                    const links = transitionGraph.getLinks("resource1", context, req)
+                    expect(links).eql([{
+                            rel: "rel1",
+                            href: fooUrl
+                        },
+                        {
+                            rel: "rel2",
+                            href: feeUrl
+                        }
+                    ])
+                });
+            })
         });
 
         describe('对Rest服务的解析', function () {
@@ -1155,117 +1268,6 @@ describe('hyper-rest', function () {
 					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
 				});
 			}); 
-        });
-
-		 
-
-        describe("基本的资源状态迁移图解析器", function () {
-            var context, req, transitionGraph;
-            var fooUrl, feeUrl;
-            var getTransitionUrlStub, transitionGraphFactory, transitionGraphParser;
-            var transCondStub;
-
-            beforeEach(function () {
-                context = {
-                    context: "any context"
-                };
-                req = {
-                    req: "any request object"
-                };
-                transitionGraph = {
-                    resource1: {
-                        rel1: "foo",
-                        rel2: "fee"
-                    },
-                    resource2: {
-                        rel3: "fuu"
-                    }
-                };
-
-                fooUrl = '/url/foo';
-                feeUrl = '/url/fee';
-                getTransitionUrlStub = sinon.stub();
-                getTransitionUrlStub.withArgs("resource1", 'foo', context, req).returns(fooUrl);
-                getTransitionUrlStub.withArgs("resource1", 'fee', context, req).returns(feeUrl);
-
-                transitionGraphFactory = require("../rests/BaseTransitionGraph");
-                transitionGraphParser = transitionGraphFactory(transitionGraph, {
-                    getTransitionUrl: getTransitionUrlStub
-                });
-                transCondStub = sinon.stub();
-            });
-
-            it("最简单的迁移定义", function () {
-                return transitionGraphParser.getLinks("resource1", context, req)
-                    .then(function (data) {
-                        expect(data).eql([{
-                                rel: "rel1",
-                                href: fooUrl
-                            },
-                            {
-                                rel: "rel2",
-                                href: feeUrl
-                            },
-                        ])
-                    })
-            });
-
-            it("以对象表达迁移", function () {
-                transCondStub.withArgs(context, req).returns(false);
-                transitionGraph.resource1.rel2 = {
-                    id: "fee"
-                };
-
-                return transitionGraphParser.getLinks("resource1", context, req)
-                    .then(function (data) {
-                        expect(data).eql([{
-                                rel: "rel1",
-                                href: fooUrl
-                            },
-                            {
-                                rel: "rel2",
-                                href: feeUrl
-                            },
-                        ])
-                    })
-            });
-
-            it("未满足迁移条件", function () {
-                transCondStub.withArgs(context, req).returns(false);
-                transitionGraph.resource1.rel2 = {
-                    id: "fee",
-                    condition: transCondStub
-                };
-
-                return transitionGraphParser.getLinks("resource1", context, req)
-                    .then(function (data) {
-                        expect(data).eql([{
-                            rel: "rel1",
-                            href: fooUrl
-                        }])
-                    })
-            });
-
-            it("满足迁移条件", function () {
-                transCondStub.withArgs(context, req).returns(true);
-                transitionGraph.resource1.rel2 = {
-                    id: "fee",
-                    condition: transCondStub
-                };
-
-                return transitionGraphParser.getLinks("resource1", context, req)
-                    .then(function (data) {
-                        expect(data).eql([{
-                                rel: "rel1",
-                                href: fooUrl
-                            },
-                            {
-                                rel: "rel2",
-                                href: feeUrl
-                            }
-                        ])
-                    })
-            });
         });
     });
 

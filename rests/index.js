@@ -1,11 +1,17 @@
-const resourceDescriptorsLoader = require('./DirectoryResourceDescriptorsLoader'),
-	resourceRegistry = require('./ResourceRegistry'),
+const URL = require('../express/Url'),
+    createUrlBuilder = require('./UrlBuilder')(URL),
+    resourceDescriptorsLoader = require('./DirectoryResourceDescriptorsLoader'),
+    restDescriptor = require('./RestDescriptor'),
+    resourceRegistry = require('./ResourceRegistry')(createUrlBuilder, restDescriptor),
 	BaseTransitionGraph = require('./BaseTransitionGraph');
 
 
 module.exports = (restDir, graph) => {
     let resourceDescriptors = resourceDescriptorsLoader(restDir).loadAll()
-    let transitionsGraph = BaseTransitionGraph(graph, resourceRegistry);
+    let transitionsGraph = BaseTransitionGraph(graph, 
+        (resourceId, resource, context, req) => { 
+            return resourceRegistry.getTransitionUrl(resourceId, resource, context, req)
+        });
     resourceRegistry.setTransitionGraph(transitionsGraph);
     return [resourceRegistry, resourceDescriptors]
 }
