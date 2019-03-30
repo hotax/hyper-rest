@@ -1,4 +1,4 @@
-const URL = require('../express/Url'),
+const URL = require('../express/Url').resolve,
     createUrlBuilder = require('./UrlBuilder')(URL),
     resourceDescriptorsLoader = require('./DirectoryResourceDescriptorsLoader'),
     restDescriptor = require('./RestDescriptor'),
