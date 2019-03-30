@@ -369,21 +369,20 @@ describe('hyper-rest', function () {
         })
 
         describe('基于目录内资源描述文件的资源加载器', function () {
-            var descDir, loader;
-
+            const restLoader = require('../rests/DirectoryResourceDescriptorsLoader');
+            let descDir, loader;
+    
             beforeEach(function () {
                 descDir = path.join(__dirname, './data/rests');
             });
-
+    
             it('指定的资源目录不存在', function () {
-				descDir = path.join(__dirname, './data/fff');
-				const createLoader = require('../rests/DirectoryResourceDescriptorsLoader');
-				const errMsg = util.format('The resources descriptions dir[%s] dose not exist!', descDir);
-				expect(() => createLoader(descDir)).to.throw(errMsg);
+                descDir = path.join(__dirname, './data/fff');
+                expect(() => restLoader(descDir)).to.throw();
             });
-
+    
             it('加载一个资源描述', function () {
-                loader = require('../rests/DirectoryResourceDescriptorsLoader')(descDir);
+                loader = restLoader(descDir);
                 var fooDesc = require('./data/rests/foo');
                 expect(loader.loadAll()).eql({
                     foo: fooDesc
