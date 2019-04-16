@@ -1,7 +1,7 @@
 /**
  * Created by clx on 2017/10/13.
  */
-const MEDIA_TYPE = 'application/vnd.hotex.com+json',
+const MEDIA_TYPE = 'application/vnd.finelets.com+json',
     REASON_FORBIDDEN = "forbidden",
     REASON_IF_MATCH = 'if-match',
     REASON_NOTHING = 'nothing',
@@ -222,7 +222,8 @@ const __createHandler = function (context, restDesc, req, res) {
             console.error(err);
             return res.status(500).send(err);
         })
-};
+}
+
 const __entryHandler = function (context, restDesc, req, res) {
     return context.getLinks(null, req)
         .then(function (links) {
@@ -232,7 +233,6 @@ const __entryHandler = function (context, restDesc, req, res) {
             });
         })
         .catch(function (err) {
-            console.error(err);
             return res.status(500).send(err);
         })
 };

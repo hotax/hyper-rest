@@ -506,8 +506,6 @@ describe('hyper-rest', function () {
         describe('对Rest服务的解析', function () {
             const bodyParser = require('body-parser'),
                 requestAgent = require('supertest');
-                
-
             var url, desc, currentResource;
             var selfUrl, urlResolveStub, restDescriptor;
 
@@ -550,17 +548,17 @@ describe('hyper-rest', function () {
                             href: '/href2'
                         }
                     ];
-                    currentResource.getLinks.returns(Promise.resolve(expectedLinks));
+                    currentResource.getLinks.resolves(expectedLinks);
 
                     request.get(url)
-                        .expect('Content-Type', 'application/vnd.hotex.com+json; charset=utf-8')
+                        .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                         .expect(200, {
                             links: expectedLinks
                         }, done);
                 });
 
                 it('未知错误返回500内部错', function (done) {
-                    currentResource.getLinks.returns(Promise.reject("err"));
+                    currentResource.getLinks.rejects("err")
                     request.get(url)
 						.expect(500, done)
                 });
@@ -1108,7 +1106,7 @@ describe('hyper-rest', function () {
                 stubs['./RestDescriptor'] = {
                     attach: attachSpy
                 };
-                resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+                resourceRegistry = require('../rests/ResourceRegistry')()
             });
 
             it('一个资源应具有寻址性，必须定义url模板', function () {
