@@ -383,7 +383,7 @@ describe('Db Entity', () => {
             return dbSave(dbModel, toCreate)
                 .then(data => {
                     doc = data
-                    return entity.delete(doc.id)
+                    return entity.remove(doc.id)
                 })
                 .then((data) => {
                     expect(data).true
@@ -404,7 +404,7 @@ describe('Db Entity', () => {
                     return dbSave(dbModel, {type:2, fld: 'fee'})
                 })
                 .then(() => {
-                    return entity.delete(idnotExist)
+                    return entity.remove(idnotExist)
                 })
                 .then((data) => {
                     expect(data).undefined

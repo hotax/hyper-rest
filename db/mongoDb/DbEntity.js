@@ -105,7 +105,7 @@ class Entity {
             })
     }
 
-    delete(id) {
+    remove(id) {
         return this.__config.schema.deleteOne({_id: id})
         .then((data) => {
             if(data.n === 0 && data.deletedCount === 0 ) return
@@ -142,8 +142,8 @@ const __create = (config, addIn) => {
             return entity.update(data)
         },
 
-        delete(id) {
-            return entity.delete(id)
+        remove(id) {
+            return entity.remove(id)
         },
 
         ...addIn
