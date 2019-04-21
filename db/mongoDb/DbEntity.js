@@ -41,6 +41,20 @@ class Entity {
             })
     }
 
+    ifNoneMatch(id, version) {
+        return this.ifMatch(id, version)
+            .then((data) => {
+                return !data
+            })
+    }
+
+    ifModifiedSince(id, version) {
+        return ifUnmodifiedSince(id, version)
+            .then((data) => {
+                return !data
+            })
+    }
+
     ifMatch(id, version) {
         return this.__config.schema.findById(id)
             .then(doc => {
@@ -55,8 +69,7 @@ class Entity {
         return this.__config.schema.findById(id)
             .then(doc => {
                 if (doc) {
-                    doc = doc.toJSON()
-                    return doc.updatedAt === version
+                    return doc.updatedAt.toUTCString() === version
                 }
                 return false
             })
@@ -82,7 +95,9 @@ class Entity {
             }
         }
 
-        return config.schema.find(query).sort({modifiedDate: -1}).limit(20) // TODO: 通过参数设定笔数
+        return config.schema.find(query).sort({
+                modifiedDate: -1
+            }).limit(20) // TODO: 通过参数设定笔数
             .then(data => {
                 return __.map(data, item => {
                     return item.toJSON()

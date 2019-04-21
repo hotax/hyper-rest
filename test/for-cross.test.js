@@ -195,4 +195,25 @@ describe('Cross', () => {
 		})
 	})
 
+	describe('httpDate2JsonDate', () => {
+		const moment = require('moment'),
+		DATE_RFC2822 = 'ddd, DD MMM YYYY HH:mm:ss [GMT]'
+
+		function __toHttpDate(jsonVal) {
+			let date = moment(jsonVal)
+			return date.utc().format(DATE_RFC2822);
+		}
+
+		function __toJsonDate(httpdate) {
+			return moment(httpdate).toJSON()
+		}
+
+		it('to http date', () => {
+			const date = new Date()
+			const jsondate = date.toJSON()
+			const utcDate = date.toUTCString()
+			const httpdate = __toHttpDate(jsondate)
+			const last = __toJsonDate(httpdate)
+		})
+	})
 })
