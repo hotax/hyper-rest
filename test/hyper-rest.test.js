@@ -968,22 +968,23 @@ describe('hyper-rest', function () {
             });
 
             describe('更新服务', function () {
-                var handler, id, version, body, doc, modifiedDate;
+                var id, version, body, doc, modifiedDate;
+                let handler, ifMatch, ifUnmodifiedSince
+
                 beforeEach(function () {
-                    handler = sinon.stub({
-                        ifMatch: () => {},
-                        ifUnmodifiedSince: () => {},
-                        handle: () => {}
-                    });
+                    handler = sinon.stub()
+                    ifMatch = sinon.stub()
+                    ifUnmodifiedSince = sinon.stub()
                     desc = {
                         type: 'update',
-                        handler: handler
+                        ifMatch,
+                        ifUnmodifiedSince,
+                        handler
                     };
                     url = "/url/:id";
                     id = "foo";
                     version = "12345df";
-                    modifiedDate = new Date(2017, 11, 11);
-                    modifiedDate = modifiedDate.toJSON()
+                    modifiedDate = new Date(2017, 11, 11).toJSON()
                     body = {
                         body: "any data to update"
                     };
@@ -1000,34 +1001,28 @@ describe('hyper-rest', function () {
                             .expect(501, done); // response "501: Not Implemented"
                     });
 
-                    it('未定义处理方法', function (done) {
-                        delete desc.handler.handle
-                        request.put("/url/" + id)
-                            .expect(501, done);
-                    });
-
                     it('处理方法不是一个函数', function (done) {
-                        desc.handler.handle = 'not a function'
+                        desc.handler = 'not a function'
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
 
                     it('未定义任何条件校验方法', function (done) {
-                        delete desc.handler.ifMatch
-                        delete desc.handler.ifUnmodifiedSince
+                        delete desc.ifMatch
+                        delete desc.ifUnmodifiedSince
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
 
                     it('ifMatch条件校验方法不是一个函数', function (done) {
-                        desc.handler.ifMatch = 'not a function'
+                        desc.ifMatch = 'not a function'
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
 
                     it('ifUnmodifiedSince条件校验方法不是一个函数', function (done) {
-                        delete desc.handler.ifMatch
-                        desc.handler.ifUnmodifiedSince = 'not a function'
+                        delete desc.ifMatch
+                        desc.ifUnmodifiedSince = 'not a function'
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
@@ -1039,38 +1034,38 @@ describe('hyper-rest', function () {
 
 
                     it('IF-MATCH条件校验出错', function (done) {
-                        handler.ifMatch.withArgs(id, version).rejects()
+                        ifMatch.withArgs(id, version).rejects()
                         request.put("/url/" + id)
                             .set("If-Match", version)
                             .expect(500, done)
                     });
 
                     it('不满足IF-MATCH请求条件', function (done) {
-                        handler.ifMatch.withArgs(id, version).resolves(false)
+                        ifMatch.withArgs(id, version).resolves(false)
                         request.put("/url/" + id)
                             .set("If-Match", version)
                             .expect(412, done)
                     });
 
                     it('If-Unmodified-Since条件校验出错', function (done) {
-                        delete desc.handler.ifMatch
-                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).rejects()
+                        delete desc.ifMatch
+                        ifUnmodifiedSince.withArgs(id, modifiedDate).rejects()
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
                             .expect(500, done)
                     });
 
                     it('不满足If-Unmodified-Since请求条件', function (done) {
-                        delete desc.handler.ifMatch
-                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(false)
+                        delete desc.ifMatch
+                        ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(false)
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
                             .expect(412, done)
                     });
 
                     it('处理出错', function (done) {
-                        handler.ifMatch.withArgs(id, version).resolves(true)
-                        handler.handle.withArgs(id, body).rejects()
+                        ifMatch.withArgs(id, version).resolves(true)
+                        handler.withArgs(id, body).rejects()
                         request.put("/url/" + id)
                             .set("If-Match", version)
                             .send(body)
@@ -1078,8 +1073,8 @@ describe('hyper-rest', function () {
                     });
 
                     it('条件请求下文档状态不一致', function (done) {
-                        handler.ifMatch.withArgs(id, version).resolves(true)
-                        handler.handle.withArgs(id, body).resolves()
+                        ifMatch.withArgs(id, version).resolves(true)
+                        handler.withArgs(id, body).resolves()
                         request.put("/url/" + id)
                             .set("If-Match", version)
                             .send(body)
@@ -1087,9 +1082,9 @@ describe('hyper-rest', function () {
                     });
 
                     it('满足请求条件, 并正确响应', function (done) {
-                        delete desc.handler.ifMatch
-                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(true)
-                        handler.handle.withArgs(id, body).resolves({})
+                        delete desc.ifMatch
+                        ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(true)
+                        handler.withArgs(id, body).resolves({})
                         urlResolve.returns(selfUrl)
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
@@ -1105,21 +1100,21 @@ describe('hyper-rest', function () {
                     })
 
                     it('处理出错', function (done) {
-                        handler.handle.withArgs(id, body).rejects()
+                        handler.withArgs(id, body).rejects()
                         request.put("/url/" + id)
                             .send(body)
                             .expect(500, done)
                     });
 
                     it('未找到文档或状态不一致', function (done) {
-                        handler.handle.withArgs(id, body).resolves()
+                        handler.withArgs(id, body).resolves()
                         request.put("/url/" + id)
                             .send(body)
                             .expect(409, done);
                     });
 
                     it('无条件请求, 正确响应', function (done) {
-                        handler.handle.withArgs(id, body).resolves({})
+                        handler.withArgs(id, body).resolves({})
                         urlResolve.returns(selfUrl)
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)

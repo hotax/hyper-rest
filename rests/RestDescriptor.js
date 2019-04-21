@@ -190,7 +190,7 @@ const __updateHandler = (context, restDesc, req, res) => {
         })
 
     function __doHandle() {
-        if (!restDesc.handler || !restDesc.handler.handle || !__.isFunction(restDesc.handler.handle))
+        if (!restDesc.handler || !__.isFunction(restDesc.handler))
             return Promise.reject(501)
         let {
             conditional
@@ -201,24 +201,24 @@ const __updateHandler = (context, restDesc, req, res) => {
     }
 
     function __conditionalHandle(id) {
-        if (!restDesc.handler.ifMatch && !restDesc.handler.ifUnmodifiedSince) return Promise.reject(501)
-        return restDesc.handler.ifMatch ? __ifMatch(id) : __ifUnmodifiedSince(id)
+        if (!restDesc.ifMatch && !restDesc.ifUnmodifiedSince) return Promise.reject(501)
+        return restDesc.ifMatch ? __ifMatch(id) : __ifUnmodifiedSince(id)
     }
 
     function __ifMatch(id) {
-        if (!__.isFunction(restDesc.handler.ifMatch)) return Promise.reject(501)
+        if (!__.isFunction(restDesc.ifMatch)) return Promise.reject(501)
         let version = req.get('If-Match')
         if (!version) return Promise.reject(428)
 
-        return __checkAndHandle(restDesc.handler.ifMatch, id, version)
+        return __checkAndHandle(restDesc.ifMatch, id, version)
     }
 
     function __ifUnmodifiedSince(id) {
-        if (!__.isFunction(restDesc.handler.ifUnmodifiedSince)) return Promise.reject(501)
+        if (!__.isFunction(restDesc.ifUnmodifiedSince)) return Promise.reject(501)
         let version = req.get('If-Unmodified-Since')
         if (!version) return Promise.reject(428)
 
-        return __checkAndHandle(restDesc.handler.ifUnmodifiedSince, id, version)
+        return __checkAndHandle(restDesc.ifUnmodifiedSince, id, version)
     }
 
     function __checkAndHandle(check, id, version) {
@@ -230,7 +230,7 @@ const __updateHandler = (context, restDesc, req, res) => {
     }
 
     function __handle(id) {
-        return restDesc.handler.handle(id, req.body)
+        return restDesc.handler(id, req.body)
             .then(data => {
                 if (!data) return Promise.reject(409)
 
