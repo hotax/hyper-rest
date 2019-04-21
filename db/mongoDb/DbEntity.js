@@ -49,7 +49,7 @@ class Entity {
     }
 
     ifModifiedSince(id, version) {
-        return ifUnmodifiedSince(id, version)
+        return this.ifUnmodifiedSince(id, version)
             .then((data) => {
                 return !data
             })
