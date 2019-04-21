@@ -59,7 +59,7 @@ class Entity {
         return this.__config.schema.findById(id)
             .then(doc => {
                 if (doc) {
-                    return doc.__v === version
+                    return doc.__v.toString() === version
                 }
                 return false
             })
