@@ -847,7 +847,23 @@ describe('hyper-rest', function () {
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('ETag', version)
-                            .expect('Last-Modified', modifiedDate)
+                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                            .expect(200, representation, done)
+                    });
+
+                    it('正确响应，引用其他资源', function (done) {
+                        const foourl = '/url/foo'
+                        desc.dataRef = {foo: 'foo'}
+                        currentResource.getTransitionUrl.callsFake((target, context, req) => {
+                            expect(target).eql('foo')
+                            expect(context).eql(objRead)
+                            return foourl
+                        })
+                        representation[resourceId].foo = foourl
+                        request.get(url)
+                            .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                            .expect('ETag', version)
+                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
                             .expect(200, representation, done)
                     });
 
@@ -856,7 +872,7 @@ describe('hyper-rest', function () {
                         representation[resourceId] = {...objRead}
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
-                            .expect('Last-Modified', modifiedDate)
+                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
                             .expect(200, representation, done)
                     });
 
@@ -879,7 +895,7 @@ describe('hyper-rest', function () {
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('Cache-Control', cacheControlVal)
                             .expect('ETag', version)
-                            .expect('Last-Modified', modifiedDate)
+                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
                             .expect(200, representation, done)
                     });
 
@@ -894,7 +910,7 @@ describe('hyper-rest', function () {
                             request.get(url)
                                 .set('If-None-Match', version)
                                 .expect('ETag', version)
-                                .expect('Last-Modified', modifiedDate)
+                                .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
                                 .expect(304, done)
                         });
 

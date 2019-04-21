@@ -90,6 +90,14 @@ const __readHandler = function (context, restDesc, req, res) {
         return restDesc.handler(id)
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)
+                if(restDesc.dataRef) {
+                    __.each(restDesc.dataRef, (val, key) => {
+                        const refId = data[key]
+                        if(refId) {
+                            data[key] = context.getTransitionUrl(val, data, req)
+                        } 
+                    })
+                }
                 return __doResponse(data)
             })
     }
