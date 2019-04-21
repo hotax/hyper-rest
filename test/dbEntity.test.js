@@ -375,7 +375,43 @@ describe('Db Entity', () => {
                     expect(err.code).eqls(11000)
                 })
         })
-
     })
 
+    describe('delete', () => {
+        it('删除', () => {
+            let doc
+            return dbSave(dbModel, toCreate)
+                .then(data => {
+                    doc = data
+                    return entity.delete(doc.id)
+                })
+                .then((data) => {
+                    expect(data).true
+                    return dbModel.count()
+                })
+                .then((data) => {
+                    expect(data).eqls(0)
+                })
+                .catch((err) => {
+                    should.fail('Failed if come here')
+                })
+        })
+
+        it('未找到', () => {
+            let idnotExist = '5cbc4b5a24ff3317d420baaa'
+            return dbSave(dbModel, toCreate)
+                .then((data) => {
+                    return dbSave(dbModel, {type:2, fld: 'fee'})
+                })
+                .then(() => {
+                    return entity.delete(idnotExist)
+                })
+                .then((data) => {
+                    expect(data).undefined
+                })
+                .catch((err) => {
+                    should.fail('Failed if come here')
+                })
+        })
+    })
 })
