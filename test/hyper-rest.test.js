@@ -43,7 +43,7 @@ describe('hyper-rest', function () {
         })
     });
 
-    describe('Session', function(){
+    describe('Session', function () {
         describe('基于Mongodb的Session管理', function () {
             it('session', function (done) {
                 var requestAgent = require('supertest');
@@ -72,14 +72,14 @@ describe('hyper-rest', function () {
 
                 var request = requestAgent(app);
                 request.get('/')
-                .end(function(err, res){
-                    request.get('/bar')
-                    .expect(200)
-                    .end(function(err, res){
-                        err = err;
-                        done();
+                    .end(function (err, res) {
+                        request.get('/bar')
+                            .expect(200)
+                            .end(function (err, res) {
+                                err = err;
+                                done();
+                            })
                     })
-                })
             });
         });
     });
@@ -315,19 +315,24 @@ describe('hyper-rest', function () {
     describe('Restful', function () {
         describe('UrlBuilder', () => {
             const urlTemplate = '/rest/:foo/sec1',
-            paramVal = 'paramVal',
-            expectedUrl = '/rest/' + paramVal + '/sec1',
-            resourceId = 'fooid',
-            context = {context: 'any data of context'},
-            req = {params:{}, query:{}},
-            resourceUrlParamsMap = {};
+                paramVal = 'paramVal',
+                expectedUrl = '/rest/' + paramVal + '/sec1',
+                resourceId = 'fooid',
+                context = {
+                    context: 'any data of context'
+                },
+                req = {
+                    params: {},
+                    query: {}
+                },
+                resourceUrlParamsMap = {};
             let createUrlBuilder, urlBuilder
-    
-            beforeEach(()=>{
+
+            beforeEach(() => {
                 createUrlBuilder = require('../rests/UrlBuilder')()
                 urlBuilder = createUrlBuilder(urlTemplate, resourceUrlParamsMap)
             })
-    
+
             it('无变量Url', () => {
                 const url = '/rest/foo/sec'
                 urlBuilder = createUrlBuilder(url)
@@ -342,54 +347,77 @@ describe('hyper-rest', function () {
                 urlBuilder = createUrlBuilder(url)
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('变量在上下文中', () => {
                 context.foo = paramVal
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('变量在请求变量中', () => {
                 req.params.foo = paramVal
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('变量在请求查询变量中', () => {
                 req.query.foo = paramVal
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('指定变量取值为上下文属性值', () => {
                 context.fldVal = paramVal
-                resourceUrlParamsMap[resourceId] = {foo: 'context.fldVal'}
+                resourceUrlParamsMap[resourceId] = {
+                    foo: 'context.fldVal'
+                }
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('指定变量取值为请求变量值', () => {
                 req.params.fldVal = paramVal
-                resourceUrlParamsMap[resourceId] = {foo: 'params.fldVal'}
+                resourceUrlParamsMap[resourceId] = {
+                    foo: 'params.fldVal'
+                }
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
-    
+
             it('指定变量取值为请求查询变量值', () => {
                 req.query.fldVal = paramVal
-                resourceUrlParamsMap[resourceId] = {foo: 'query.fldVal'}
+                resourceUrlParamsMap[resourceId] = {
+                    foo: 'query.fldVal'
+                }
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+        })
+
+        describe('CacheControlParser', () => {
+            const parser = require('../rests/CacheControlParser'),
+            control = 'no-store no-cache public private'
+
+            it('设置控制', () => {
+                expect(parser({control})).eql(control)
+            })
+
+            it('设置max-age', () => {
+                expect(parser({maxAge: 31536000})).eql('max-age=31536000')
+            })
+
+            it('设置控制和max-age', () => {
+                expect(parser({control, maxAge: 31536000})).eql(control + ' max-age=31536000')
             })
         })
 
         describe('基于目录内资源描述文件的资源加载器', function () {
             const restLoader = require('../rests/DirectoryResourceDescriptorsLoader');
             let descDir, loader;
-    
+
             beforeEach(function () {
                 descDir = path.join(__dirname, './data/rests');
             });
-    
+
             it('指定的资源目录不存在', function () {
                 descDir = path.join(__dirname, './data/fff');
                 expect(() => restLoader(descDir)).to.throw();
             });
-    
+
             it('加载一个资源描述', function () {
                 loader = restLoader(descDir);
                 var fooDesc = require('./data/rests/foo');
@@ -418,18 +446,18 @@ describe('hyper-rest', function () {
             fooUrl = '/url/foo',
                 feeUrl = '/url/fee',
                 createTransitionGraph = require('../rests/BaseTransitionGraph');
-    
+
             let linkParser, transitionGraph;
-        
+
             beforeEach(function () {
                 linkParser = sinon.stub();
                 linkParser.withArgs("resource1", 'foo', context, req).returns(fooUrl);
                 linkParser.withArgs("resource1", 'fee', context, req).returns(feeUrl);
-    
+
                 transitionGraph = createTransitionGraph(graph, linkParser);
                 transCondStub = sinon.stub();
             });
-    
+
             it("最简单的迁移定义", function () {
                 const links = transitionGraph.getLinks("resource1", context, req)
                 expect(links).eql([{
@@ -442,19 +470,19 @@ describe('hyper-rest', function () {
                     },
                 ])
             });
-    
+
             describe('以对象表达迁移', () => {
                 let transCondStub;
-    
+
                 beforeEach(function () {
                     transCondStub = sinon.stub();
                 })
-    
+
                 it('至少应包含迁移目标资源Id', function () {
                     graph.resource1.rel2 = {
                         id: "fee"
                     };
-    
+
                     const links = transitionGraph.getLinks("resource1", context, req)
                     expect(links).eql([{
                             rel: "rel1",
@@ -466,29 +494,28 @@ describe('hyper-rest', function () {
                         },
                     ])
                 });
-    
+
                 it("可以为一迁移定义一个迁移条件 - 未满足迁移条件", function () {
                     transCondStub.withArgs(context, req).returns(false);
                     graph.resource1.rel2 = {
                         id: "fee",
                         condition: transCondStub
                     };
-        
+
                     const links = transitionGraph.getLinks("resource1", context, req)
                     expect(links).eql([{
-                            rel: "rel1",
-                            href: fooUrl
-                        }
-                    ])
+                        rel: "rel1",
+                        href: fooUrl
+                    }])
                 });
-    
+
                 it("可以为一迁移定义一个迁移条件 - 满足迁移条件", function () {
                     transCondStub.withArgs(context, req).returns(true);
                     graph.resource1.rel2 = {
                         id: "fee",
                         condition: transCondStub
                     };
-        
+
                     const links = transitionGraph.getLinks("resource1", context, req)
                     expect(links).eql([{
                             rel: "rel1",
@@ -506,14 +533,16 @@ describe('hyper-rest', function () {
         describe('对Rest服务的解析', function () {
             const bodyParser = require('body-parser'),
                 requestAgent = require('supertest');
-            var url, desc, currentResource;
-            var selfUrl, urlResolveStub, restDescriptor;
+            const selfUrl = '/rests/foo/self'
+
+            let url, desc, currentResource;
+            let app, request, urlResolve, cacheControlParser, restDescriptor;
 
             beforeEach(function () {
-				url = '/rests/foo';
-				app = require('express')();
-				app.use(bodyParser.json());
-				request = requestAgent(app);
+                url = '/rests/foo';
+                app = require('express')();
+                app.use(bodyParser.json());
+                request = requestAgent(app);
                 currentResource = {
                     getResourceId: function () {},
                     getUrl: function () {},
@@ -521,13 +550,10 @@ describe('hyper-rest', function () {
                     getLinks: function () {}
                 };
                 currentResource = sinon.stub(currentResource);
-
-                selfUrl = '/rests/foo/self';
-                urlResolveStub = sinon.stub();
-                stubs['../express/Url'] = {
-                    resolve: urlResolveStub
-                };
-                restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
+                
+                urlResolve = sinon.stub()
+                cacheControlParser = sinon.stub()
+                restDescriptor = require('../rests/RestDescriptor')(urlResolve, cacheControlParser)
             });
 
             describe('入口服务', function () {
@@ -560,7 +586,7 @@ describe('hyper-rest', function () {
                 it('未知错误返回500内部错', function (done) {
                     currentResource.getLinks.rejects("err")
                     request.get(url)
-						.expect(500, done)
+                        .expect(500, done)
                 });
             });
 
@@ -631,16 +657,15 @@ describe('hyper-rest', function () {
                         return refurl;
                     });
 
-                    urlResolveStub.callsFake(function (req, urlArg) {
+                    urlResolve.callsFake(function (req, urlArg) {
                         expect(urlArg).eql(url + queryStr);
                         return selfUrl;
                     });
-                    restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
                     restDescriptor.attach(app, currentResource, url, desc);
 
                     request.get(url)
                         .query(reqQuery)
-                        .expect('Content-Type', 'application/vnd.hotex.com+json; charset=utf-8')
+                        .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                         .expect(200, {
                             collection: {
                                 href: selfUrl,
@@ -684,14 +709,14 @@ describe('hyper-rest', function () {
             });
 
             describe('创建资源服务', function () {
-                var targetResourceId, reqBody, createStub, objCreated;
+                let targetResourceId, reqBody, handler, objCreated;
                 beforeEach(function () {
                     targetResourceId = "fuuuuuu";
-                    createStub = sinon.stub();
+                    handler = sinon.stub();
                     desc = {
                         type: 'create',
                         target: targetResourceId,
-                        handler: createStub
+                        handler: handler
                     };
 
                     restDescriptor.attach(app, currentResource, url, desc);
@@ -702,13 +727,13 @@ describe('hyper-rest', function () {
                         foo: "any request data used to create object"
                     };
                     objCreated = {
-                        __id: 'fooid',
+                        id: 'fooid',
                         foo: 'foo',
                         fee: 'fee'
                     };
-                    createStub.withArgs(reqBody).returns(Promise.resolve(objCreated));
+                    handler.withArgs(reqBody).resolves(objCreated);
 
-                    var expectedLinks = [{
+                    const expectedLinks = [{
                             rel: 'rel1',
                             href: '/href1'
                         },
@@ -717,12 +742,11 @@ describe('hyper-rest', function () {
                             href: '/href2'
                         }
                     ];
-                    currentResource.getLinks
-                        .callsFake(function (context, req) {
-                            expect(context).eql(objCreated);
-                            expect(req.originalUrl).eql(url);
-                            return Promise.resolve(expectedLinks);
-                        });
+                    currentResource.getLinks.callsFake((context, req) => {
+                        expect(context).eql(objCreated);
+                        expect(req.originalUrl).eql(url);
+                        return Promise.resolve(expectedLinks);
+                    })
                     var urlToCreatedObject = "/url/to/created/obj";
                     currentResource.getTransitionUrl.callsFake(function (target, context, req) {
                         expect(target).eql(targetResourceId);
@@ -733,7 +757,7 @@ describe('hyper-rest', function () {
 
                     request.post(url)
                         .send(reqBody)
-                        .expect('Content-Type', 'application/vnd.hotex.com+json; charset=utf-8')
+                        .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                         .expect('Location', urlToCreatedObject)
                         .expect(201, {
                             href: urlToCreatedObject,
@@ -743,7 +767,7 @@ describe('hyper-rest', function () {
                 });
 
                 it('未知错误返回500内部错', function (done) {
-                    createStub.returns(Promise.reject("err"));
+                    handler.rejects("err");
                     request.post(url)
                         .send(reqBody)
                         .expect(500, done);
@@ -751,31 +775,13 @@ describe('hyper-rest', function () {
             });
 
             describe('读取资源状态服务', function () {
-                var resourceId, handlerStub, objRead, version, modifiedDate;
-                beforeEach(function () {
-                    resourceId = "fuuuu";
-                    version = "123456";
-                    modifiedDate = new Date(2017, 10, 10).toJSON();
-                    handlerStub = sinon.stub();
-                    desc = {
-                        type: 'read',
-                        handler: handlerStub
-                    };
-                });
-
-                it('正确响应', function (done) {
-                    currentResource.getResourceId.returns(resourceId);
-
-                    objRead = {
-                        id: 'fooid',
-                        foo: 'foo',
-                        fee: 'fee',
-                        modifiedDate: modifiedDate,
-                        __v: version
-                    };
-                    handlerStub.returns(Promise.resolve(objRead));
-
-                    var expectedLinks = [{
+                const resourceId = "fuuuu",
+                    urlPattern = "/url/:id",
+                    id = 'abcd',
+                    url = '/url/' + id,
+                    version = '123456',
+                    modifiedDate = new Date(2017, 10, 10).toJSON(),
+                    expectedLinks = [{
                             rel: 'rel1',
                             href: '/href1'
                         },
@@ -783,57 +789,191 @@ describe('hyper-rest', function () {
                             rel: 'rel2',
                             href: '/href2'
                         }
-                    ];
-                    currentResource.getLinks
-                        .callsFake(function (context, req) {
-                            expect(context).eql(objRead);
-                            expect(req.originalUrl).eql(url);
-                            return Promise.resolve(expectedLinks);
-                        });
+                    ]
+                let handler, objRead;
 
-                    var representedObject = Object.assign({}, objRead);
-                    representedObject.modifiedDate = modifiedDate;
-                    var representation = {
-                        href: selfUrl,
-                        links: expectedLinks
-                    };
-                    representation[resourceId] = representedObject;
+                beforeEach(function () {
+                    objRead = {
+                        id,
+                        foo: 'foo',
+                        fee: 'fee',
+                        updatedAt: modifiedDate,
+                        __v: version
+                    }
 
-                    urlResolveStub.callsFake(function (req, urlArg) {
+                    handler = sinon.stub();
+                    desc = {
+                        type: 'read',
+                        handler: handler
+                    }
+                    currentResource.getResourceId.returns(resourceId)
+                    urlResolve.callsFake(function (req, urlArg) {
                         expect(urlArg).eql(url);
                         return selfUrl;
-                    });
-                    restDescriptor = proxyquire('../rests/RestDescriptor', stubs);
-                    restDescriptor.attach(app, currentResource, url, desc);
-
-                    request.get(url)
-                        .expect('Content-Type', 'application/vnd.hotex.com+json; charset=utf-8')
-                        .expect('ETag', version)
-                        .expect('Last-Modified', modifiedDate)
-                        .expect(200, representation, done)
+                    })
+                    currentResource.getLinks.callsFake((context, req) => {
+                        expect(context).eql(objRead);
+                        expect(req.originalUrl).eql(url);
+                        return Promise.resolve(expectedLinks);
+                    })
+                    restDescriptor.attach(app, currentResource, urlPattern, desc);
                 });
+
+                it('处理出错', (done) => {
+                    handler.withArgs({id}).rejects()
+                    request.get(url)
+                        .expect(500, done)
+                })
 
                 it('未找到资源', function (done) {
-                    handlerStub.returns(Promise.reject("Not-Found"));
-                    restDescriptor.attach(app, currentResource, url, desc);
+                    handler.withArgs({id}).resolves()
                     request.get(url)
                         .expect(404, done);
-                });
+                })
 
-                it('未知错误返回500内部错', function (done) {
-                    handlerStub.returns(Promise.reject("err"));
-                    restDescriptor.attach(app, currentResource, url, desc);
-                    request.get(url)
-                        .expect(500, done);
-                });
+                describe('读取指定资源', () => {
+                    let representation
+
+                    beforeEach(() => {
+                        handler.withArgs({id}).resolves(objRead)
+                        representation = {
+                            href: selfUrl,
+                            links: expectedLinks
+                        };
+                        representation[resourceId] = {...objRead};
+                    })
+
+                    it('正确响应', function (done) {
+                        request.get(url)
+                            .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                            .expect('ETag', version)
+                            .expect('Last-Modified', modifiedDate)
+                            .expect(200, representation, done)
+                    });
+
+                    it('无ETag', function (done) {
+                        delete objRead.__v
+                        representation[resourceId] = {...objRead}
+                        request.get(url)
+                            .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                            .expect('Last-Modified', modifiedDate)
+                            .expect(200, representation, done)
+                    });
+
+                    it('无Last-Modified', function (done) {
+                        delete objRead.updatedAt
+                        representation[resourceId] = {...objRead}
+                        request.get(url)
+                            .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                            .expect('ETag', version)
+                            .expect(200, representation, done)
+                    });
+
+                    it('Cache-Control', function (done) {
+                        const cacheControl = {cacheControl: 'any data to control cache'},
+                        cacheControlVal = 'cacheControlVal'
+                        desc.cache = cacheControl
+                        cacheControlParser.withArgs(cacheControl).returns(cacheControlVal)
+
+                        request.get(url)
+                            .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                            .expect('Cache-Control', cacheControlVal)
+                            .expect('ETag', version)
+                            .expect('Last-Modified', modifiedDate)
+                            .expect(200, representation, done)
+                    });
+
+                    describe('Cache validation', () => {
+                        let validation
+
+                        beforeEach(() => {
+                            validation = sinon.stub()
+                        })
+
+                        it('未提供任何Cache validation方法， 数据未发生改变', function (done) {
+                            request.get(url)
+                                .set('If-None-Match', version)
+                                .expect('ETag', version)
+                                .expect('Last-Modified', modifiedDate)
+                                .expect(304, done)
+                        });
+
+                        it('未提供任何Cache validation方法， 数据改变', function (done) {
+                            delete objRead.updatedAt
+                            delete objRead.__v
+                            representation[resourceId] = {...objRead}
+                            request.get(url)
+                                .set('If-None-Match', version)
+                                .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                                .expect(200, representation, done)
+                        });
+
+                        it('If-None-Match出错', function (done) {
+                            validation.withArgs({id}, version).rejects()
+                            desc.ifNoneMatch = validation
+                            request.get(url)
+                                .set('If-None-Match', version)
+                                .expect(500, done)
+                        });
+
+                        it('提供If-None-Match方法， 数据未发生改变', function (done) {
+                            validation.withArgs({id}, version).resolves(false)
+                            desc.ifNoneMatch = validation
+                            request.get(url)
+                                .set('If-None-Match', version)
+                                .expect(304, done)
+                        });
+
+                        it('提供If-None-Match方法， 数据改变', function (done) {
+                            delete objRead.updatedAt
+                            delete objRead.__v
+                            representation[resourceId] = {...objRead}
+                            validation.withArgs({id}, version).resolves(true)
+                            desc.ifNoneMatch = validation
+                            request.get(url)
+                                .set('If-None-Match', version)
+                                .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                                .expect(200, representation, done)
+                        });
+
+                        it('If-Modified-Since出错', function (done) {
+                            validation.withArgs({id}, modifiedDate).rejects()
+                            desc.ifModifiedSince = validation
+                            request.get(url)
+                                .set('If-Modified-Since', modifiedDate)
+                                .expect(500, done)
+                        });
+
+                        it('提供If-Modified-Sinc方法， 数据未发生改变', function (done) {
+                            validation.withArgs({id}, modifiedDate).resolves(false)
+                            desc.ifModifiedSince = validation
+                            request.get(url)
+                                .set('If-Modified-Since', modifiedDate)
+                                .expect(304, done)
+                        });
+
+                        it('提供If-Modified-Sinc方法， 数据改变', function (done) {
+                            delete objRead.updatedAt
+                            delete objRead.__v
+                            representation[resourceId] = {...objRead}
+                            validation.withArgs({id}, modifiedDate).resolves(true)
+                            desc.ifModifiedSince = validation
+                            request.get(url)
+                                .set('If-Modified-Since', modifiedDate)
+                                .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                                .expect(200, representation, done)
+                        });
+                    })
+                })
             });
 
             describe('更新服务', function () {
                 var handler, id, version, body, doc, modifiedDate;
                 beforeEach(function () {
                     handler = sinon.stub({
-                        condition: ()=>{},
-                        handle: ()=>{}
+                        ifMatch: () => {},
+                        ifUnmodifiedSince: () => {},
+                        handle: () => {}
                     });
                     desc = {
                         type: 'update',
@@ -857,91 +997,104 @@ describe('hyper-rest', function () {
                     it('未定义handler', function (done) {
                         delete desc.handler
                         request.put("/url/" + id)
-                            .expect(501, done);  // response "501: Not Implemented"
+                            .expect(501, done); // response "501: Not Implemented"
                     });
-    
-                    it('请求中未包含条件', function (done) {
-                        request.put("/url/" + id)
-                            .expect(428, done);
-                    });
-    
-                    it('未定义条件校验方法', function (done) {
-                        delete desc.handler.condition
-                        request.put("/url/" + id)
-                            .expect(501, done);
-                    });
-    
-                    it('条件校验方法不是一个函数', function (done) {
-                        desc.handler.condition = 'not a function'
-                        request.put("/url/" + id)
-                            .expect(501, done);
-                    });
-    
+
                     it('未定义处理方法', function (done) {
                         delete desc.handler.handle
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
-    
+
                     it('处理方法不是一个函数', function (done) {
                         desc.handler.handle = 'not a function'
                         request.put("/url/" + id)
                             .expect(501, done);
                     });
-    
-                    it('条件校验出错', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).rejects()
+
+                    it('未定义任何条件校验方法', function (done) {
+                        delete desc.handler.ifMatch
+                        delete desc.handler.ifUnmodifiedSince
+                        request.put("/url/" + id)
+                            .expect(501, done);
+                    });
+
+                    it('ifMatch条件校验方法不是一个函数', function (done) {
+                        desc.handler.ifMatch = 'not a function'
+                        request.put("/url/" + id)
+                            .expect(501, done);
+                    });
+
+                    it('ifUnmodifiedSince条件校验方法不是一个函数', function (done) {
+                        delete desc.handler.ifMatch
+                        desc.handler.ifUnmodifiedSince = 'not a function'
+                        request.put("/url/" + id)
+                            .expect(501, done);
+                    });
+
+                    it('请求中未包含条件', function (done) {
+                        request.put("/url/" + id)
+                            .expect(428, done);
+                    });
+
+
+                    it('IF-MATCH条件校验出错', function (done) {
+                        handler.ifMatch.withArgs(id, version).rejects()
+                        request.put("/url/" + id)
+                            .set("If-Match", version)
+                            .expect(500, done)
+                    });
+
+                    it('不满足IF-MATCH请求条件', function (done) {
+                        handler.ifMatch.withArgs(id, version).resolves(false)
+                        request.put("/url/" + id)
+                            .set("If-Match", version)
+                            .expect(412, done)
+                    });
+
+                    it('If-Unmodified-Since条件校验出错', function (done) {
+                        delete desc.handler.ifMatch
+                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).rejects()
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
                             .expect(500, done)
                     });
-    
-                    it('不满足请求条件', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).resolves(false)
+
+                    it('不满足If-Unmodified-Since请求条件', function (done) {
+                        delete desc.handler.ifMatch
+                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(false)
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
                             .expect(412, done)
                     });
-    
+
                     it('处理出错', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.ifMatch.withArgs(id, version).resolves(true)
                         handler.handle.withArgs(id, body).rejects()
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Match", version)
                             .send(body)
                             .expect(500, done)
                     });
-    
+
                     it('条件请求下文档状态不一致', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).resolves(true)
+                        handler.ifMatch.withArgs(id, version).resolves(true)
                         handler.handle.withArgs(id, body).resolves()
                         request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
+                            .set("If-Match", version)
                             .send(body)
                             .expect(409, done)
                     });
-    
-                    it('满足请求条件, 并正确响应', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).resolves(true)
-                        handler.handle.withArgs(id, body).resolves({
-                            modifiedDate: modifiedDate
-                        })
-                        request.put("/url/" + id)
-                            .set("If-Unmodified-Since", modifiedDate)
-                            .send(body)
-                            .expect("Last-Modified", modifiedDate)
-                            .expect(204, done);
-                    });
 
-                    it('满足请求条件, 并正确响应 - 可正确处理JSON日期', function (done) {
-                        handler.condition.withArgs(id, modifiedDate).resolves(true)
-                        handler.handle.withArgs(id, body).resolves({
-                            modifiedDate: modifiedDate
-                        })
+                    it('满足请求条件, 并正确响应', function (done) {
+                        delete desc.handler.ifMatch
+                        handler.ifUnmodifiedSince.withArgs(id, modifiedDate).resolves(true)
+                        handler.handle.withArgs(id, body).resolves({})
+                        urlResolve.returns(selfUrl)
                         request.put("/url/" + id)
                             .set("If-Unmodified-Since", modifiedDate)
                             .send(body)
-                            .expect("Last-Modified", modifiedDate)
+                            .expect("Content-Location", selfUrl)
                             .expect(204, done);
                     });
                 })
@@ -950,7 +1103,7 @@ describe('hyper-rest', function () {
                     beforeEach(() => {
                         desc.conditional = false
                     })
-    
+
                     it('处理出错', function (done) {
                         handler.handle.withArgs(id, body).rejects()
                         request.put("/url/" + id)
@@ -964,113 +1117,76 @@ describe('hyper-rest', function () {
                             .send(body)
                             .expect(409, done);
                     });
-    
-                    it("修改日期无效", function (done) {
-                        handler.handle.withArgs(id, body).resolves({modifiedDate: 'invalid date'})
-                        request.put("/url/" + id)
-                            .send(body)
-                            .expect(409, done);
-                    });
-    
+
                     it('无条件请求, 正确响应', function (done) {
-                        handler.handle.withArgs(id, body).resolves({
-                            modifiedDate: modifiedDate
-                        })
+                        handler.handle.withArgs(id, body).resolves({})
+                        urlResolve.returns(selfUrl)
                         request.put("/url/" + id)
+                            .set("If-Unmodified-Since", modifiedDate)
                             .send(body)
-                            .expect("Last-Modified", modifiedDate)
+                            .expect("Content-Location", selfUrl)
                             .expect(204, done);
                     });
                 })
             });
 
             describe('删除服务', function () {
-                var handler, id, version;
+                const url = "/url/:id",
+                    id = 'foo';
+                let handler;
+
                 beforeEach(function () {
-                    handler = sinon.stub({
-                        condition: function (id, version) {},
-                        handle: function (id, version) {}
-                    });
+                    handler = sinon.stub()
                     desc = {
                         type: 'delete',
                         handler: handler
                     };
-                    url = "/url/:id";
-                    id = "foo";
-                    version = "12345df";
                     restDescriptor.attach(app, currentResource, url, desc);
-                });
+                })
 
-                it('请求中未包含条件', function (done) {
-                    desc.conditional = true;
+                it('未定义handler', function (done) {
+                    delete desc.handler
                     request.delete("/url/" + id)
-                        .expect(403, "client must send a conditional request", done);
-                });
+                        .expect(501, done); // response "501: Not Implemented"
+                })
 
-                it('不满足请求条件', function (done) {
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(false));
+                it('handler不是一个方法', function (done) {
+                    desc.handler = 'is not function'
                     request.delete("/url/" + id)
-                        .set("If-Match", version)
-                        .expect(412, done);
-                });
+                        .expect(501, done); // response "501: Not Implemented"
+                })
 
-                it('满足请求条件, 但handle处理失败', function (done) {
-                    var reason = "conflict";
-                    err = "details of conflicts";
-                    desc.response = {
-                        conflict: {
-                            code: 409,
-                            err: err
-                        }
-                    };
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(true));
-                    handler.handle.withArgs(id, version).returns(Promise.reject(reason));
+                it('handler处理失败', function (done) {
+                    handler.withArgs({
+                        id
+                    }).rejects()
                     request.delete("/url/" + id)
-                        .set("If-Match", version)
-                        .expect(409, err, done);
-                });
+                        .expect(500, done);
+                })
 
-                it('满足请求条件, 并正确响应', function (done) {
-                    handler.condition.withArgs(id, version).returns(Promise.resolve(true));
-                    handler.handle.returns(Promise.resolve());
-                    request.delete("/url/" + id)
-                        .set("If-Match", version)
-                        .expect(204, done);
-                });
-
-                it('未找到文档', function (done) {
-                    var reason = "Not-Found";
-                    handler.handle.withArgs(id).returns(Promise.reject(reason));
+                it('资源未找到', function (done) {
+                    handler.withArgs({
+                        id
+                    }).resolves()
                     request.delete("/url/" + id)
                         .expect(404, done);
-                });
+                })
+
+                it('拒绝', function (done) {
+                    handler.withArgs({
+                        id
+                    }).resolves(false)
+                    request.delete("/url/" + id)
+                        .expect(405, done);
+                })
 
                 it('正确响应', function (done) {
-                    handler.handle.withArgs(id).returns(Promise.resolve());
+                    handler.withArgs({
+                        id
+                    }).resolves(true)
                     request.delete("/url/" + id)
                         .expect(204, done);
-                });
-
-                it('响应删除失败', function (done) {
-                    var reason = "conflict";
-                    err = "details of conflicts";
-                    desc.response = {
-                        conflict: {
-                            code: 409
-                        }
-                    };
-                    //TODO:对于在服务定义中定义的出错处理应重构
-                    handler.handle.withArgs(id).returns(Promise.reject(reason));
-                    request.delete("/url/" + id)
-                        .expect(409, reason, done);
-                });
-
-                it('未能识别的错误返回500内部错', function (done) {
-                    err = "foo";
-                    handler.handle.withArgs(id).returns(Promise.reject(err));
-                    request.delete("/url/" + id)
-                        .expect(500, err, done);
-                });
+                })
             });
         });
 
@@ -1093,7 +1209,7 @@ describe('hyper-rest', function () {
                 };
 
                 restDesc = {
-					type: "READ",
+                    type: "READ",
                     rest: 'any rest descriptor'
                 };
 
@@ -1165,8 +1281,8 @@ describe('hyper-rest', function () {
                     href: "/fee"
                 }];
                 //var getLinksStub = createPromiseStub([resourceId, context, req], [links]);
-				var getLinksStub = sinon.stub()
-				getLinksStub.withArgs(resourceId, context, req).resolves(links);
+                var getLinksStub = sinon.stub()
+                getLinksStub.withArgs(resourceId, context, req).resolves(links);
 
                 resourceRegistry = require('../rests/ResourceRegistry');
                 resourceRegistry.setTransitionGraph({
@@ -1180,13 +1296,13 @@ describe('hyper-rest', function () {
                     })
             });
 
-			it('资源定义错：未定义任何rest服务列表', ()=>{
-				delete desc.rests;
+            it('资源定义错：未定义任何rest服务列表', () => {
+                delete desc.rests;
                 expect(function () {
                     resourceRegistry.attach(router, resourceId, desc);
                 }).throw('no restful service is defined!');
-			});
-			
+            });
+
             it('资源定义错：未定义任何rest服务', function () {
                 desc.rests = [];
                 expect(function () {
@@ -1203,69 +1319,69 @@ describe('hyper-rest', function () {
 
                 var resource = resourceRegistry.attach(router, resourceId, desc);
                 expect(attachSpy).calledWith(router, resource, url, restDesc);
-			}); 
-			
-			describe('构建当前资源的URL', function () {
-				var fromResourceId, context, req;
-				var resource;
-				var expectedUrl, urlResolveStub;
-	
-				beforeEach(function () {
-					fromResourceId = 'fff';
-					context = {};
-					req = {
-						params: {},
-						query: {}
-					}
-	
-					expectedUrl = "/expected/url";
-					urlResolveStub = sinon.stub();
-					stubs['../express/Url'] = {
-						resolve: urlResolveStub
-					};
-				});
-	
-				it('无路径变量', function () {
-					urlResolveStub.withArgs(req, url).returns(expectedUrl);
-					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-	
-					resource = resourceRegistry.attach(router, resourceId, desc);
-					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-				});
-	
-				it('未定义迁移，缺省方式从上下文中取同路径变量名相同的属性值', function () {
-					desc.url = '/url/:arg1/and/:arg2/and/:arg3';
-					context.arg3 = '1234';
-					req.params.arg2 = '3456';
-					req.query.arg1 = '5678';
-	
-					urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234').returns(expectedUrl);
-					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-	
-					resource = resourceRegistry.attach(router, resourceId, desc);
-					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-				});
-	
-				it('通过定义迁移指定路径变量的取值', function () {
-					desc.transitions = {};
-					desc.transitions[fromResourceId] = {
-						arg1: 'query.foo',
-						arg2: 'params.foo',
-						arg3: 'context.foo'
-					};
-					desc.url = '/url/:arg1/and/:arg2/and/:arg3/and/:arg4';
-					context.foo = '1234';
-					context.arg4 = '9876';
-					req.params.foo = '3456';
-					req.query.foo = '5678';
-	
-					urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234/and/9876').returns(expectedUrl);
-					resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
-	
-					resource = resourceRegistry.attach(router, resourceId, desc);
-					expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
-				});
-			}); 
+            });
+
+            describe('构建当前资源的URL', function () {
+                var fromResourceId, context, req;
+                var resource;
+                var expectedUrl, urlResolveStub;
+
+                beforeEach(function () {
+                    fromResourceId = 'fff';
+                    context = {};
+                    req = {
+                        params: {},
+                        query: {}
+                    }
+
+                    expectedUrl = "/expected/url";
+                    urlResolveStub = sinon.stub();
+                    stubs['../express/Url'] = {
+                        resolve: urlResolveStub
+                    };
+                });
+
+                it('无路径变量', function () {
+                    urlResolveStub.withArgs(req, url).returns(expectedUrl);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+
+                    resource = resourceRegistry.attach(router, resourceId, desc);
+                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+                });
+
+                it('未定义迁移，缺省方式从上下文中取同路径变量名相同的属性值', function () {
+                    desc.url = '/url/:arg1/and/:arg2/and/:arg3';
+                    context.arg3 = '1234';
+                    req.params.arg2 = '3456';
+                    req.query.arg1 = '5678';
+
+                    urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234').returns(expectedUrl);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+
+                    resource = resourceRegistry.attach(router, resourceId, desc);
+                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+                });
+
+                it('通过定义迁移指定路径变量的取值', function () {
+                    desc.transitions = {};
+                    desc.transitions[fromResourceId] = {
+                        arg1: 'query.foo',
+                        arg2: 'params.foo',
+                        arg3: 'context.foo'
+                    };
+                    desc.url = '/url/:arg1/and/:arg2/and/:arg3/and/:arg4';
+                    context.foo = '1234';
+                    context.arg4 = '9876';
+                    req.params.foo = '3456';
+                    req.query.foo = '5678';
+
+                    urlResolveStub.withArgs(req, '/url/5678/and/3456/and/1234/and/9876').returns(expectedUrl);
+                    resourceRegistry = proxyquire('../rests/ResourceRegistry', stubs);
+
+                    resource = resourceRegistry.attach(router, resourceId, desc);
+                    expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
+                });
+            });
         });
     });
 

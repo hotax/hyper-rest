@@ -1,7 +1,8 @@
 const URL = require('../express/Url').resolve,
+    cacheControlParser = require('./CacheControlParser'),
     createUrlBuilder = require('./UrlBuilder')(URL),
     resourceDescriptorsLoader = require('./DirectoryResourceDescriptorsLoader'),
-    restDescriptor = require('./RestDescriptor'),
+    restDescriptor = require('./RestDescriptor')(URL, cacheControlParser),
     resourceRegistry = require('./ResourceRegistry')(createUrlBuilder, restDescriptor),
 	BaseTransitionGraph = require('./BaseTransitionGraph');
 

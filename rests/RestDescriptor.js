@@ -8,10 +8,11 @@ const MEDIA_TYPE = 'application/vnd.finelets.com+json',
     REASON_CONCURRENT_CONFLICT = 'concurrent-conflict',
     REASON_NOT_FOUND = 'not-found';
 
-const URL = require('../express/Url'),
-    __ = require('underscore'),
+const __ = require('underscore'),
     moment = require('moment'),
     logger = require('../app/Logger');
+
+let __urlResolve, __cacheControl
 
 const __sendRes = (res, state, data) => {
     res.status(state)
@@ -29,7 +30,7 @@ const __getHandler = function (context, restDesc, req, res) {
     var representation;
     return restDesc.handler(query)
         .then(function (data) {
-            var self = URL.resolve(req, req.originalUrl);
+            var self = __urlResolve(req, req.originalUrl);
             representation = {
                 data: data,
                 self: self
@@ -46,31 +47,75 @@ const __getHandler = function (context, restDesc, req, res) {
             return res.status(500).send(err);
         })
 };
+
 const __readHandler = function (context, restDesc, req, res) {
-    var representation;
-    return restDesc.handler(req, res)
-        .then(function (data) {
-            var self = URL.resolve(req, req.originalUrl);
-            representation = {
-                href: self
-            };
-            representation[context.getResourceId()] = data;
-            res.set('ETag', data.__v);
-            if (data.modifiedDate) res.set('Last-Modified', data.modifiedDate);
-            return context.getLinks(data, req);
+    return __doHandle()
+        .catch(err => {
+            if (__.isError(err)) err = 500
+            return __sendRes(res, err)
         })
-        .then(function (links) {
-            representation.links = links;
-            res.set('Content-Type', MEDIA_TYPE);
-            return res.status(200).json(representation);
-        })
-        .catch(function (err) {
-            if (err.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end();
-            console.error(err);
-            return res.status(500).send(err);
-        })
+
+    function __doHandle() {
+        if (!restDesc.handler || !__.isFunction(restDesc.handler))
+            return __sendRes(res, 501)
+
+        const id = req.params,
+            version = req.get('If-None-Match'),
+            updatedAt = req.get('If-Modified-Since')
+        if (__needValidation(restDesc.ifNoneMatch, version)) {
+            return __doValidation(restDesc.ifNoneMatch, id, version)
+        }
+        if (__needValidation(restDesc.ifModifiedSince, updatedAt)) {
+            return __doValidation(restDesc.ifModifiedSince, id, updatedAt)
+        }
+        return __doHandlerHandle(id)
+    }
+
+    function __needValidation(validation, version) {
+        return version && validation && __.isFunction(validation)
+    }
+
+    function __doValidation(validation, id, version) {
+        return validation(id, version)
+            .then((changed) => {
+                if (!changed) {
+                    return __sendRes(res, 304)
+                }
+                return __doHandlerHandle(id)
+            })
+    }
+
+    function __doHandlerHandle(id) {
+        return restDesc.handler(id)
+            .then((data) => {
+                if (__.isUndefined(data)) return __sendRes(res, 404)
+                return __doResponse(data)
+            })
+    }
+
+    function __doResponse(data) {
+        const href = __urlResolve(req, req.originalUrl);
+        let representation = {
+            href
+        };
+        representation[context.getResourceId()] = data;
+        if (!__.isUndefined(data.__v)) {
+            res.set('ETag', data.__v)
+        }
+        if (data.updatedAt) res.set('Last-Modified', data.updatedAt);
+        if (restDesc.cache) {
+            let ctrl = __cacheControl(restDesc.cache)
+            res.set('Cache-Control', ctrl)
+        }
+        return context.getLinks(data, req)
+            .then(function (links) {
+                representation.links = links;
+                res.set('Content-Type', MEDIA_TYPE);
+                return res.status(200).json(representation);
+            })
+    }
 };
+
 const __queryHandler = function (context, restDesc, req, res) {
     var query = Object.assign({}, req.query);
     if (query.perpage) query.perpage = parseInt(query.perpage);
@@ -78,7 +123,7 @@ const __queryHandler = function (context, restDesc, req, res) {
     var representation;
     return restDesc.handler(query)
         .then(function (data) {
-            var self = URL.resolve(req, req.originalUrl);
+            var self = __urlResolve(req, req.originalUrl);
             representation = {
                 collection: {
                     href: self,
@@ -91,7 +136,7 @@ const __queryHandler = function (context, restDesc, req, res) {
             data.items.forEach(function (itemData) {
                 var href = context.getTransitionUrl(restDesc.element, itemData, req);
                 var copy = Object.assign({}, itemData);
-                
+
                 // TODO: 暂时保留id用于查询时可作为查询条件取值，以后应通过URL提供查询条件取值，例如查询指定料品的订单或采购单等
                 // delete copy['id']
                 var item = {
@@ -116,48 +161,32 @@ const __queryHandler = function (context, restDesc, req, res) {
         })
 };
 const __deleteHandler = function (context, restDesc, req, res) {
-    var id = req.params["id"];
-    var etag = req.get("If-Match");
-    var aPromis = etag ? restDesc.handler.condition(id, etag) :
-        !restDesc.conditional ? Promise.resolve(true) : Promise.reject("Forbidden");
-    return aPromis
-        .then(function (data) {
-            if (!data) return Promise.reject(REASON_IF_MATCH);
-            return restDesc.handler.handle(id, etag);
+    return __doHandle()
+        .catch(err => {
+            if (__.isError(err)) err = 500
+            return __sendRes(res, err)
         })
-        .then(function () {
-            return res.status(204).end();
-        })
-        .catch(function (reason) {
-            if (reason.toLowerCase() === REASON_FORBIDDEN)
-                return res.status(403).send("client must send a conditional request").end();
-            if (reason.toLowerCase() === REASON_IF_MATCH)
-                return res.status(412).end();
-            if (reason.toLowerCase() === REASON_NOT_FOUND)
-                return res.status(404).end();
-            if (reason.toLowerCase() === REASON_CONCURRENT_CONFLICT)
-                return res.status(304).end();
-            if (restDesc.response && restDesc.response[reason]) {
-                var msg = restDesc.response[reason].err ? restDesc.response[reason].err : reason;
-                return res.status(restDesc.response[reason].code)
-                    .send(msg)
-                    .end();
-            }
-            console.error(reason);
-            return res.status(500).send(reason);
-        })
+
+    function __doHandle() {
+        if (!restDesc.handler || !__.isFunction(restDesc.handler))
+            return __sendRes(res, 501)
+
+        let id = req.params
+        return restDesc.handler(id)
+            .then((data) => {
+                if (__.isUndefined(data)) return __sendRes(res, 404)
+                const code = data ? 204 : 405
+                return __sendRes(res, code)
+            })
+    }
 };
 
 const __updateHandler = (context, restDesc, req, res) => {
-    function __doResponse(data) {
-        let {
-            modifiedDate
-        } = data || {}
-        if (!modifiedDate) return Promise.reject(409)
-        if (!moment(modifiedDate).isValid()) return Promise.reject(409)
-        res.set('Last-Modified', modifiedDate)
-        return __sendRes(res, 204)
-    }
+    return __doHandle()
+        .catch(err => {
+            if (__.isError(err)) err = 500
+            return __sendRes(res, err)
+        })
 
     function __doHandle() {
         if (!restDesc.handler || !restDesc.handler.handle || !__.isFunction(restDesc.handler.handle))
@@ -166,38 +195,49 @@ const __updateHandler = (context, restDesc, req, res) => {
             conditional
         } = restDesc
         if (__.isUndefined(conditional)) conditional = true
-        return conditional ? __conditionalHandle() : __handle()
+        let id = req.params["id"]
+        return conditional ? __conditionalHandle(id) : __handle(id)
     }
 
-    function __conditionalHandle() {
-        if (!restDesc.handler.condition || !__.isFunction(restDesc.handler.condition)) return Promise.reject(501)
-        let ifUnmodifiedSince = req.get('If-Unmodified-Since')
-        if (!ifUnmodifiedSince) return Promise.reject(428)
+    function __conditionalHandle(id) {
+        if (!restDesc.handler.ifMatch && !restDesc.handler.ifUnmodifiedSince) return Promise.reject(501)
+        return restDesc.handler.ifMatch ? __ifMatch(id) : __ifUnmodifiedSince(id)
+    }
 
-        let id = req.params["id"];
-        return restDesc.handler.condition(id, ifUnmodifiedSince)
+    function __ifMatch(id) {
+        if (!__.isFunction(restDesc.handler.ifMatch)) return Promise.reject(501)
+        let version = req.get('If-Match')
+        if (!version) return Promise.reject(428)
+
+        return __checkAndHandle(restDesc.handler.ifMatch, id, version)
+    }
+
+    function __ifUnmodifiedSince(id) {
+        if (!__.isFunction(restDesc.handler.ifUnmodifiedSince)) return Promise.reject(501)
+        let version = req.get('If-Unmodified-Since')
+        if (!version) return Promise.reject(428)
+
+        return __checkAndHandle(restDesc.handler.ifUnmodifiedSince, id, version)
+    }
+
+    function __checkAndHandle(check, id, version) {
+        return check(id, version)
             .then(valid => {
                 if (!valid) return Promise.reject(412)
-                return restDesc.handler.handle(id, req.body);
-            })
-            .then(data => {
-                return __doResponse(data)
+                return __handle(id)
             })
     }
 
-    function __handle() {
-        let id = req.params["id"];
+    function __handle(id) {
         return restDesc.handler.handle(id, req.body)
             .then(data => {
-                return __doResponse(data)
+                if (!data) return Promise.reject(409)
+
+                const self = __urlResolve(req, req.originalUrl)
+                res.set('Content-Location', self)
+                return __sendRes(res, 204)
             })
     }
-
-    return __doHandle()
-        .catch(err => {
-            if (__.isError(err)) err = 500
-            return __sendRes(res, err)
-        })
 }
 
 const __createHandler = function (context, restDesc, req, res) {
@@ -211,16 +251,15 @@ const __createHandler = function (context, restDesc, req, res) {
         .then(function (links) {
             res.set('Content-Type', MEDIA_TYPE);
             res.set('Location', urlToCreatedResource);
-            var representation = {
+            let representation = {
                 href: urlToCreatedResource
             };
             representation[restDesc.target] = targetObject;
             if (links.length > 0) representation.links = links;
             return res.status(201).json(representation);
         })
-        .catch(function (err) {
-            console.error(err);
-            return res.status(500).send(err);
+        .catch(function () {
+            return __sendRes(res, 500)
         })
 }
 
@@ -293,9 +332,15 @@ const handlerMap = {
     }
 }
 
-module.exports = {
-    attach: function (router, currentResource, urlPattern, restDesc) {
-        var type = restDesc.type.toLowerCase();
-        return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
+function __create(urlResolve, cacheControlParser) {
+    __urlResolve = urlResolve
+    __cacheControl = cacheControlParser
+
+    return {
+        attach: function (router, currentResource, urlPattern, restDesc) {
+            var type = restDesc.type.toLowerCase();
+            return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
+        }
     }
 }
+module.exports = __create
