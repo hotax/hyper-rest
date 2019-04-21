@@ -1,16 +1,10 @@
 /**
  * Created by clx on 2017/10/13.
  */
-const MEDIA_TYPE = 'application/vnd.finelets.com+json',
-    REASON_FORBIDDEN = "forbidden",
-    REASON_IF_MATCH = 'if-match',
-    REASON_NOTHING = 'nothing',
-    REASON_CONCURRENT_CONFLICT = 'concurrent-conflict',
-    REASON_NOT_FOUND = 'not-found';
+const MEDIA_TYPE = 'application/vnd.finelets.com+json';
 
 const __ = require('underscore'),
-    moment = require('moment'),
-    logger = require('../app/Logger');
+logger = require('../app/Logger');
 
 let __urlResolve, __cacheControl
 
@@ -25,8 +19,9 @@ const __attachHandler = function (router, method, context, urlPattern, restDesc)
         return handlerMap[restDesc.type].handler(context, restDesc, req, res);
     });
 };
+
 const __getHandler = function (context, restDesc, req, res) {
-    var query = Object.assign({}, req.query);
+    var query = {...req.query}
     var representation;
     return restDesc.handler(query)
         .then(function (data) {
@@ -42,9 +37,8 @@ const __getHandler = function (context, restDesc, req, res) {
             res.set('Content-Type', MEDIA_TYPE);
             return res.status(200).json(representation);
         })
-        .catch(function (err) {
-            console.error(err);
-            return res.status(500).send(err);
+        .catch(() => {
+            return __sendRes(res, 500)
         })
 };
 
@@ -59,7 +53,7 @@ const __readHandler = function (context, restDesc, req, res) {
         if (!restDesc.handler || !__.isFunction(restDesc.handler))
             return __sendRes(res, 501)
 
-        const id = req.params,
+        const id = req.params['id'],
             version = req.get('If-None-Match'),
             updatedAt = req.get('If-Modified-Since')
         if (__needValidation(restDesc.ifNoneMatch, version)) {
@@ -171,7 +165,7 @@ const __deleteHandler = function (context, restDesc, req, res) {
         if (!restDesc.handler || !__.isFunction(restDesc.handler))
             return __sendRes(res, 501)
 
-        let id = req.params
+        let id = req.params['id']
         return restDesc.handler(id)
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)

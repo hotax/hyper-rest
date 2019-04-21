@@ -820,13 +820,13 @@ describe('hyper-rest', function () {
                 });
 
                 it('处理出错', (done) => {
-                    handler.withArgs({id}).rejects()
+                    handler.withArgs(id).rejects()
                     request.get(url)
                         .expect(500, done)
                 })
 
                 it('未找到资源', function (done) {
-                    handler.withArgs({id}).resolves()
+                    handler.withArgs(id).resolves()
                     request.get(url)
                         .expect(404, done);
                 })
@@ -835,7 +835,7 @@ describe('hyper-rest', function () {
                     let representation
 
                     beforeEach(() => {
-                        handler.withArgs({id}).resolves(objRead)
+                        handler.withArgs(id).resolves(objRead)
                         representation = {
                             href: selfUrl,
                             links: expectedLinks
@@ -917,7 +917,7 @@ describe('hyper-rest', function () {
                         });
 
                         it('提供If-None-Match方法， 数据未发生改变', function (done) {
-                            validation.withArgs({id}, version).resolves(false)
+                            validation.withArgs(id, version).resolves(false)
                             desc.ifNoneMatch = validation
                             request.get(url)
                                 .set('If-None-Match', version)
@@ -928,7 +928,7 @@ describe('hyper-rest', function () {
                             delete objRead.updatedAt
                             delete objRead.__v
                             representation[resourceId] = {...objRead}
-                            validation.withArgs({id}, version).resolves(true)
+                            validation.withArgs(id, version).resolves(true)
                             desc.ifNoneMatch = validation
                             request.get(url)
                                 .set('If-None-Match', version)
@@ -937,7 +937,7 @@ describe('hyper-rest', function () {
                         });
 
                         it('If-Modified-Since出错', function (done) {
-                            validation.withArgs({id}, modifiedDate).rejects()
+                            validation.withArgs(id, modifiedDate).rejects()
                             desc.ifModifiedSince = validation
                             request.get(url)
                                 .set('If-Modified-Since', modifiedDate)
@@ -945,7 +945,7 @@ describe('hyper-rest', function () {
                         });
 
                         it('提供If-Modified-Sinc方法， 数据未发生改变', function (done) {
-                            validation.withArgs({id}, modifiedDate).resolves(false)
+                            validation.withArgs(id, modifiedDate).resolves(false)
                             desc.ifModifiedSince = validation
                             request.get(url)
                                 .set('If-Modified-Since', modifiedDate)
@@ -956,7 +956,7 @@ describe('hyper-rest', function () {
                             delete objRead.updatedAt
                             delete objRead.__v
                             representation[resourceId] = {...objRead}
-                            validation.withArgs({id}, modifiedDate).resolves(true)
+                            validation.withArgs(id, modifiedDate).resolves(true)
                             desc.ifModifiedSince = validation
                             request.get(url)
                                 .set('If-Modified-Since', modifiedDate)
@@ -1157,33 +1157,25 @@ describe('hyper-rest', function () {
                 })
 
                 it('handler处理失败', function (done) {
-                    handler.withArgs({
-                        id
-                    }).rejects()
+                    handler.withArgs(id).rejects()
                     request.delete("/url/" + id)
                         .expect(500, done);
                 })
 
                 it('资源未找到', function (done) {
-                    handler.withArgs({
-                        id
-                    }).resolves()
+                    handler.withArgs(id).resolves()
                     request.delete("/url/" + id)
                         .expect(404, done);
                 })
 
                 it('拒绝', function (done) {
-                    handler.withArgs({
-                        id
-                    }).resolves(false)
+                    handler.withArgs(id).resolves(false)
                     request.delete("/url/" + id)
                         .expect(405, done);
                 })
 
                 it('正确响应', function (done) {
-                    handler.withArgs({
-                        id
-                    }).resolves(true)
+                    handler.withArgs(id).resolves(true)
                     request.delete("/url/" + id)
                         .expect(204, done);
                 })
