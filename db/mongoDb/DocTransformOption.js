@@ -11,7 +11,7 @@ const transform = {
     transform: function (doc, ret) {
         ret.id = doc.id;
         delete ret._id;
-        for (var prop in doc) {
+        for (var prop in ret) {
             if (doc[prop] instanceof Date) {
                 ret[prop] = doc[prop].toJSON();
             }
