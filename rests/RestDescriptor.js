@@ -124,7 +124,7 @@ const __queryHandler = function (context, restDesc, req, res) {
     if (query.perpage) query.perpage = parseInt(query.perpage);
     if (query.page) query.page = parseInt(query.page);
     var representation;
-    return restDesc.handler(query)
+    return restDesc.handler(query, req)
         .then(function (data) {
             var self = __urlResolve(req, req.originalUrl);
             representation = {
