@@ -731,7 +731,10 @@ describe('hyper-rest', function () {
                         foo: 'foo',
                         fee: 'fee'
                     };
-                    handler.withArgs(reqBody).resolves(objCreated);
+                    handler.callsFake((req) => {
+                        expect(req.body).eql(reqBody)
+                        return Promise.resolve(objCreated)
+                    } )
 
                     const expectedLinks = [{
                             rel: 'rel1',

@@ -245,7 +245,7 @@ const __updateHandler = (context, restDesc, req, res) => {
 
 const __createHandler = function (context, restDesc, req, res) {
     var urlToCreatedResource, targetObject;
-    return restDesc.handler(req.body)
+    return restDesc.handler(req)
         .then(function (data) {
             targetObject = data;
             urlToCreatedResource = context.getTransitionUrl(restDesc.target, data, req);
