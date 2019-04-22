@@ -2,18 +2,12 @@
  * Created by clx on 2017/10/13.
  */
 const MEDIA_TYPE = 'application/vnd.finelets.com+json',
-DATE_RFC2822 = 'ddd, DD MMM YYYY HH:mm:ss [GMT]';
+__toHttpDate = require('../utils/UtcDate').toUtc
 
 const __ = require('underscore'),
-moment = require('moment'),
 logger = require('../app/Logger');
 
 let __urlResolve, __cacheControl
-
-function __toHttpDate(jsonVal) {
-    let date = moment(jsonVal)
-    return date.utc().format(DATE_RFC2822);
-}
 
 const __sendRes = (res, state, data) => {
     res.status(state)

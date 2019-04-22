@@ -4,7 +4,7 @@
 // require('./testhelper');
 var proxyquire = require('proxyquire'),
     path = require('path'),
-    util = require('util'),
+    toUtc = require('../utils/UtcDate').toUtc,
     mongoose = require('mongoose'),
     moment = require('moment'),
     Schema = mongoose.Schema;
@@ -847,7 +847,7 @@ describe('hyper-rest', function () {
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('ETag', version)
-                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                            .expect('Last-Modified', toUtc(modifiedDate))
                             .expect(200, representation, done)
                     });
 
@@ -863,7 +863,7 @@ describe('hyper-rest', function () {
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('ETag', version)
-                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                            .expect('Last-Modified', toUtc(modifiedDate))
                             .expect(200, representation, done)
                     });
 
@@ -872,7 +872,7 @@ describe('hyper-rest', function () {
                         representation[resourceId] = {...objRead}
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
-                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                            .expect('Last-Modified', toUtc(modifiedDate))
                             .expect(200, representation, done)
                     });
 
@@ -895,7 +895,7 @@ describe('hyper-rest', function () {
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('Cache-Control', cacheControlVal)
                             .expect('ETag', version)
-                            .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                            .expect('Last-Modified', toUtc(modifiedDate))
                             .expect(200, representation, done)
                     });
 
@@ -910,7 +910,7 @@ describe('hyper-rest', function () {
                             request.get(url)
                                 .set('If-None-Match', version)
                                 .expect('ETag', version)
-                                .expect('Last-Modified', moment(modifiedDate).utc().format('ddd, DD MMM YYYY HH:mm:ss [GMT]'))
+                                .expect('Last-Modified', toUtc(modifiedDate))
                                 .expect(304, done)
                         });
 

@@ -1,3 +1,5 @@
+const toUtc = require('../utils/UtcDate').toUtc
+
 describe('Db Entity', () => {
     let dbModel, entityConfig, entity
     const toCreate = {
@@ -58,7 +60,7 @@ describe('Db Entity', () => {
         it('一致', () => {
             return dbSave(dbModel, toCreate)
                 .then((doc) => {
-                    return entity.ifMatch(doc.id, doc.__v)
+                    return entity.ifMatch(doc.id, doc.__v.toString())
                 })
                 .then((result) => {
                     expect(result).true;
@@ -70,7 +72,8 @@ describe('Db Entity', () => {
         it('自指定时间以来已发生改变', () => {
             return dbSave(dbModel, toCreate)
                 .then((doc) => {
-                    return entity.ifUnmodifiedSince(doc.id, new Date().toJSON())
+                    const utc = new Date(2019, 5, 1).toUTCString()
+                    return entity.ifUnmodifiedSince(doc.id, utc)
                 })
                 .then((result) => {
                     expect(result).false;
@@ -80,7 +83,7 @@ describe('Db Entity', () => {
         it('自指定时间以来未改变', () => {
             return dbSave(dbModel, toCreate)
                 .then((doc) => {
-                    return entity.ifUnmodifiedSince(doc.id, doc.updatedAt)
+                    return entity.ifUnmodifiedSince(doc.id, toUtc(doc.updatedAt))
                 })
                 .then((result) => {
                     expect(result).true;
