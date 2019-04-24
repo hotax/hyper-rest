@@ -1570,17 +1570,15 @@ describe('hyper-rest', function () {
 
             describe('运行服务器', function () {
                 const superagent = require('superagent');
-                var server, port;
+                const port = 3301
+                let server;
 
-                beforeEach(function (done) {
-                    port = 3301;
+                beforeEach(function () {
                     appBuilder.setWebRoot('/', './data/website');
-                    done();
                 });
 
                 afterEach(function (done) {
                     server.close(function () {
-                        console.log(('and now the server is stoped!'));
                         done();
                     });
                 });
@@ -1598,7 +1596,6 @@ describe('hyper-rest', function () {
                 }
 
                 it('运行一个缺省的Server', function (done) {
-                    process.env.PORT = 80;
                     runAndCheckServer('http://localhost/staticResource.json', done);
                 });
 
