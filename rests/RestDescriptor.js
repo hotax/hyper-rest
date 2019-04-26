@@ -345,10 +345,10 @@ function __create(urlResolve, cacheControlParser) {
             if(type === 'http') {
                 const method = restDesc.method.toLowerCase()
                 return router[method](urlPattern, function (req, res) {
-                    return restDesc.handler(req, res, context)
+                    return restDesc.handler(req, res, currentResource)
                 });
             }
-            
+
             return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
         }
     }
