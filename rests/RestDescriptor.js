@@ -341,7 +341,14 @@ function __create(urlResolve, cacheControlParser) {
 
     return {
         attach: function (router, currentResource, urlPattern, restDesc) {
-            var type = restDesc.type.toLowerCase();
+            const type = restDesc.type.toLowerCase();
+            if(type === 'http') {
+                const method = restDesc.method.toLowerCase()
+                return router[method](urlPattern, function (req, res) {
+                    return restDesc.handler(req, res, context)
+                });
+            }
+            
             return __attachHandler(router, handlerMap[type].method, currentResource, urlPattern, restDesc);
         }
     }

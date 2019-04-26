@@ -45,20 +45,41 @@ describe('hyper-rest', function () {
 
     describe('Session', function () {
         describe('基于Mongodb的Session管理', function () {
+            const bodyParser = require('body-parser'),
+                requestAgent = require('supertest'),
+                session = require('express-session'),
+                MongoStore = require('connect-mongodb-session')(session)
+
+            let app
+
+            beforeEach(() => {
+                app = require('express')()
+                app.use(bodyParser.json())
+                app.set('trust proxy', 1)
+            })
+
             it('session', function (done) {
-                var requestAgent = require('supertest');
-                var app = require('express')();
-                var session = require('express-session');
-                const MongoStore = require('connect-mongo')(session);
                 app.use(session({
                     secret: 'this-is-a-secret-token',
+                    saveUninitialized: true,
+                    resave: true,
                     cookie: {
                         maxAge: 60000
                     },
                     store: new MongoStore({
-                        url: 'mongodb://localhost/test'
+                        url: 'mongodb://localhost:27017/test',
+                        collection: 'sessions'
                     })
                 }));
+
+                /* app.use(session({
+                    secret: 'keyboard cat',
+                    resave: true,
+                    saveUninitialized: true,
+                    cookie: {
+                        secure: true
+                    }
+                })); */
 
                 app.get('/', function (req, res, next) {
                     var sessData = req.session;
@@ -67,7 +88,9 @@ describe('hyper-rest', function () {
                 });
                 app.get('/bar', function (req, res, next) {
                     var someAttribute = req.session.someAttribute;
-                    res.send(`This will print the attribute I set earlier: ${someAttribute}`);
+                    res.json({
+                        data: someAttribute
+                    });
                 });
 
                 var request = requestAgent(app);
@@ -76,7 +99,9 @@ describe('hyper-rest', function () {
                         request.get('/bar')
                             .expect(200)
                             .end(function (err, res) {
-                                err = err;
+                                expect(res.body).eql({
+                                    data: 'foo'
+                                })
                                 done();
                             })
                     })
@@ -390,18 +415,25 @@ describe('hyper-rest', function () {
 
         describe('CacheControlParser', () => {
             const parser = require('../rests/CacheControlParser'),
-            control = 'no-store no-cache public private'
+                control = 'no-store no-cache public private'
 
             it('设置控制', () => {
-                expect(parser({control})).eql(control)
+                expect(parser({
+                    control
+                })).eql(control)
             })
 
             it('设置max-age', () => {
-                expect(parser({maxAge: 31536000})).eql('max-age=31536000')
+                expect(parser({
+                    maxAge: 31536000
+                })).eql('max-age=31536000')
             })
 
             it('设置控制和max-age', () => {
-                expect(parser({control, maxAge: 31536000})).eql(control + ' max-age=31536000')
+                expect(parser({
+                    control,
+                    maxAge: 31536000
+                })).eql(control + ' max-age=31536000')
             })
         })
 
@@ -550,7 +582,7 @@ describe('hyper-rest', function () {
                     getLinks: function () {}
                 };
                 currentResource = sinon.stub(currentResource);
-                
+
                 urlResolve = sinon.stub()
                 cacheControlParser = sinon.stub()
                 restDescriptor = require('../rests/RestDescriptor')(urlResolve, cacheControlParser)
@@ -734,7 +766,7 @@ describe('hyper-rest', function () {
                     handler.callsFake((req) => {
                         expect(req.body).eql(reqBody)
                         return Promise.resolve(objCreated)
-                    } )
+                    })
 
                     const expectedLinks = [{
                             rel: 'rel1',
@@ -843,7 +875,9 @@ describe('hyper-rest', function () {
                             href: selfUrl,
                             links: expectedLinks
                         };
-                        representation[resourceId] = {...objRead};
+                        representation[resourceId] = {
+                            ...objRead
+                        };
                     })
 
                     it('正确响应', function (done) {
@@ -856,7 +890,9 @@ describe('hyper-rest', function () {
 
                     it('正确响应，引用其他资源', function (done) {
                         const foourl = '/url/foo'
-                        desc.dataRef = {foo: 'foo'}
+                        desc.dataRef = {
+                            foo: 'foo'
+                        }
                         currentResource.getTransitionUrl.callsFake((target, context, req) => {
                             expect(target).eql('foo')
                             expect(context).eql(objRead)
@@ -872,7 +908,9 @@ describe('hyper-rest', function () {
 
                     it('无ETag', function (done) {
                         delete objRead.__v
-                        representation[resourceId] = {...objRead}
+                        representation[resourceId] = {
+                            ...objRead
+                        }
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('Last-Modified', toUtc(modifiedDate))
@@ -881,7 +919,9 @@ describe('hyper-rest', function () {
 
                     it('无Last-Modified', function (done) {
                         delete objRead.updatedAt
-                        representation[resourceId] = {...objRead}
+                        representation[resourceId] = {
+                            ...objRead
+                        }
                         request.get(url)
                             .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
                             .expect('ETag', version)
@@ -889,8 +929,10 @@ describe('hyper-rest', function () {
                     });
 
                     it('Cache-Control', function (done) {
-                        const cacheControl = {cacheControl: 'any data to control cache'},
-                        cacheControlVal = 'cacheControlVal'
+                        const cacheControl = {
+                                cacheControl: 'any data to control cache'
+                            },
+                            cacheControlVal = 'cacheControlVal'
                         desc.cache = cacheControl
                         cacheControlParser.withArgs(cacheControl).returns(cacheControlVal)
 
@@ -920,7 +962,9 @@ describe('hyper-rest', function () {
                         it('未提供任何Cache validation方法， 数据改变', function (done) {
                             delete objRead.updatedAt
                             delete objRead.__v
-                            representation[resourceId] = {...objRead}
+                            representation[resourceId] = {
+                                ...objRead
+                            }
                             request.get(url)
                                 .set('If-None-Match', version)
                                 .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
@@ -928,7 +972,9 @@ describe('hyper-rest', function () {
                         });
 
                         it('If-None-Match出错', function (done) {
-                            validation.withArgs({id}, version).rejects()
+                            validation.withArgs({
+                                id
+                            }, version).rejects()
                             desc.ifNoneMatch = validation
                             request.get(url)
                                 .set('If-None-Match', version)
@@ -946,7 +992,9 @@ describe('hyper-rest', function () {
                         it('提供If-None-Match方法， 数据改变', function (done) {
                             delete objRead.updatedAt
                             delete objRead.__v
-                            representation[resourceId] = {...objRead}
+                            representation[resourceId] = {
+                                ...objRead
+                            }
                             validation.withArgs(id, version).resolves(true)
                             desc.ifNoneMatch = validation
                             request.get(url)
@@ -974,7 +1022,9 @@ describe('hyper-rest', function () {
                         it('提供If-Modified-Sinc方法， 数据改变', function (done) {
                             delete objRead.updatedAt
                             delete objRead.__v
-                            representation[resourceId] = {...objRead}
+                            representation[resourceId] = {
+                                ...objRead
+                            }
                             validation.withArgs(id, modifiedDate).resolves(true)
                             desc.ifModifiedSince = validation
                             request.get(url)
