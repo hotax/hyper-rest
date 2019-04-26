@@ -345,7 +345,7 @@ function __create(urlResolve, cacheControlParser) {
             if(type === 'http') {
                 const method = restDesc.method.toLowerCase()
                 return router[method](urlPattern, function (req, res) {
-                    return restDesc.handler(req, res, currentResource)
+                    return restDesc.handler(req, res)
                 });
             }
 
