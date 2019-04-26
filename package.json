@@ -1,6 +1,6 @@
 {
   "name": "@finelets/hyper-rest",
-  "version": "2.1.10-cross-1.34",
+  "version": "2.1.10-cross-1.35",
   "description": "Restfull platform of hypermedia ",
   "main": "index.js",
   "directories": {
