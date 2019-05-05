@@ -5,10 +5,11 @@ const mongoose = require('mongoose'),
     updateIfCurrentPlugin = require('mongoose-update-if-current').updateIfCurrentPlugin
 
 function createCollection(config) {
+    const timestamps = config.timestamps || true
     const sm = new Schema(config.schema, {
         ...transformOption,
         autoCreate: true,
-        timestamps: true
+        timestamps
     })
     sm.plugin(updateIfCurrentPlugin)
     __.each(config.indexes, (idx) => {

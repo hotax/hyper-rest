@@ -1,5 +1,9 @@
 const __ = require('underscore')
 
+function __getUpdatedAtNameFromSchema (schema){
+    return schema.schema.$timestamps.updatedAt
+}
+
 class Entity {
     constructor(config) {
         this.__config = config
@@ -66,16 +70,17 @@ class Entity {
     }
 
     ifUnmodifiedSince(id, version) {
+        const updatedAtName = __getUpdatedAtNameFromSchema(this.__config.schema)
         return this.__config.schema.findById(id)
             .then(doc => {
                 if (doc) {
-                    return doc.updatedAt.toUTCString() === version
+                    return doc[updatedAtName].toUTCString() === version
                 }
                 return false
             })
     }
 
-    search(cond, text) {
+    search(cond, text, sortExp) {
         let config = this.__config
         let query = cond
 
@@ -95,9 +100,13 @@ class Entity {
             }
         }
 
-        return config.schema.find(query).sort({
-                modifiedDate: -1
-            }).limit(20) // TODO: 通过参数设定笔数
+        let sort = sortExp
+        if (!sort) {
+            sort = {}
+            const updatedAtName = __getUpdatedAtNameFromSchema(config.schema)
+            sort[updatedAtName] = -1
+        }
+        return config.schema.find(query).sort(sort).limit(20) // TODO: 通过参数设定笔数
             .then(data => {
                 return __.map(data, item => {
                     return item.toJSON()
@@ -126,8 +135,8 @@ const __create = (config, addIn) => {
             return entity.findById(id)
         },
 
-        search(cond, text) {
-            return entity.search(cond, text)
+        search(cond, text, sort) {
+            return entity.search(cond, text, sort)
         },
 
         ifMatch(id, version) {
