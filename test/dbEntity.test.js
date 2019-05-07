@@ -325,6 +325,100 @@ describe('Db Entity', () => {
                     expect(data.length).eqls(3)
                 })
         })
+
+        it('配置排序', () => {
+            entityConfig.sort = {type: -1}
+            let saves = []
+            saves.push(dbSave(dbModel, {
+                type: 1,
+                fld1: 'foo',
+                fld: '弹簧垫片螺母'
+            }))
+            saves.push(dbSave(dbModel, {
+                type: 2,
+                fld1: 'fuu',
+                fld: '弹螺母垫片螺'
+            }))
+            saves.push(dbSave(dbModel, {
+                type: 3,
+                fld1: 'fee',
+                fld: 'fEe'
+            }))
+            return Promise.all(saves)
+                .then(() => {
+                    return entity.search({}, '')
+                })
+                .then(data => {
+                    expect(data[0].type).eql(3)
+                    expect(data[2].type).eql(1)
+                })
+        })
+
+        it('可以配置查询列表所包含的字段', () => {
+            entityConfig.listable = 'fld1 type'
+            return dbSave(dbModel, {
+                    type: 1,
+                    fld1: 'fee',
+                    fld: 'fEe'
+                })
+                .then(() => {
+                    return entity.search({fld: 'fEe'}, '')
+                })
+                .then(data => {
+                    expect(data.length).eqls(1)
+                    delete data[0].id
+                    expect(data[0]).eql({
+                        type: 1,
+                        fld1: 'fee'
+                    })
+                })
+        })
+
+        describe('可以配置查询列表的记录数', () => {
+            let saves
+
+            beforeEach(() => {
+                saves = []
+                saves.push(dbSave(dbModel, {
+                    type: 1,
+                    fld1: 'foo',
+                    fld: '弹簧垫片螺母'
+                }))
+                saves.push(dbSave(dbModel, {
+                    type: 1,
+                    fld1: 'fuu',
+                    fld: '弹螺母垫片螺'
+                }))
+                saves.push(dbSave(dbModel, {
+                    type: 1,
+                    fld1: 'fee',
+                    fld: 'fEe'
+                }))
+            })
+
+            it('通过环境变量配置全局', () => {
+                process.env.QUERY_LIST_LINES_LIMIT = '2'
+                return Promise.all(saves)
+                    .then(() => {
+                        return entity.search({}, '')
+                    })
+                    .then(data => {
+                        expect(data.length).eqls(2)
+                    })
+            })
+
+            it('配置单个业务实体，且优先于全局配置', () => {
+                process.env.QUERY_LIST_LINES_LIMIT = '2'
+                entityConfig.queryListLinesLimit = 1
+                return Promise.all(saves)
+                    .then(() => {
+                        return entity.search({}, '')
+                    })
+                    .then(data => {
+                        expect(data.length).eqls(1)
+                    })
+            })
+        })
     })
 
     describe('findById', () => {
@@ -404,7 +498,10 @@ describe('Db Entity', () => {
             let idnotExist = '5cbc4b5a24ff3317d420baaa'
             return dbSave(dbModel, toCreate)
                 .then((data) => {
-                    return dbSave(dbModel, {type:2, fld: 'fee'})
+                    return dbSave(dbModel, {
+                        type: 2,
+                        fld: 'fee'
+                    })
                 })
                 .then(() => {
                     return entity.remove(idnotExist)

@@ -80,8 +80,8 @@ class Entity {
             })
     }
 
-    search(cond, text, sortExp) {
-        let config = this.__config
+    search(cond, text) {
+        const config = this.__config
         let query = cond
 
         if (text && text.length > 0) {
@@ -100,13 +100,14 @@ class Entity {
             }
         }
 
-        let sort = sortExp
+        let sort = config.sort
         if (!sort) {
             sort = {}
             const updatedAtName = __getUpdatedAtNameFromSchema(config.schema)
             sort[updatedAtName] = -1
         }
-        return config.schema.find(query).sort(sort).limit(20) // TODO: 通过参数设定笔数
+        const limit = config.queryListLinesLimit || process.env.QUERY_LIST_LINES_LIMIT || 20
+        return config.schema.find(query, config.listable).sort(sort).limit(limit * 1)
             .then(data => {
                 return __.map(data, item => {
                     return item.toJSON()
