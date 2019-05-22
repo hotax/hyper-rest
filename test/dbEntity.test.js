@@ -433,16 +433,31 @@ describe('Db Entity', () => {
 
         })
 
-        it('找到', () => {
-            let doc
-            return dbSave(dbModel, toCreate)
-                .then(data => {
-                    doc = data
-                    return entity.findById(doc.id)
-                })
-                .then(doc => {
-                    expect(doc).eqls(doc)
-                })
+        describe('记录存在', ()=>{
+            it('缺省输出指定记录的所有字段', () => {
+                let doc
+                return dbSave(dbModel, toCreate)
+                    .then(data => {
+                        doc = data
+                        return entity.findById(doc.id)
+                    })
+                    .then(data => {
+                        expect(data).eqls(doc)
+                    })
+            })
+
+            it('可以指定不输出的字段', () => {
+                let doc
+                return dbSave(dbModel, toCreate)
+                    .then(data => {
+                        doc = data
+                        return entity.findById(doc.id, '-fld')
+                    })
+                    .then(data => {
+                        delete doc.fld
+                        expect(data).eqls(doc)
+                    })
+            })
         })
 
     })

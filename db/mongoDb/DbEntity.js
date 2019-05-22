@@ -17,9 +17,10 @@ class Entity {
             })
     }
 
-    findById(id) {
+    findById(id, projection) {
         let __config = this.__config
-        return __config.schema.findById(id)
+
+        return __config.schema.findById(id, projection || __config.projection)
             .then(doc => {
                 let result
                 if (doc) result = doc.toJSON()
@@ -132,8 +133,8 @@ const __create = (config, addIn) => {
             return entity.create(data)
         },
 
-        findById(id) {
-            return entity.findById(id)
+        findById(id, projection) {
+            return entity.findById(id, projection)
         },
 
         search(cond, text, sort) {
