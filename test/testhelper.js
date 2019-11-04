@@ -24,6 +24,14 @@ global.should = require('should');
 chai.use(chaiXml);
 chai.use(sinonChai);
 
+const saveObjectToDb = require('../db/mongoDb/SaveObjectToDb')
+global.dbSave = (schema, data) => {
+    return saveObjectToDb(schema, data)
+        .then((data) => {
+            return data.toJSON()
+        })
+}
+
 global.insertDocsInSequential = function insertDocsInSequential(model, docs, callback) {
     var result = [];
 
