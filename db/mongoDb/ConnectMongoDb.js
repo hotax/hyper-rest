@@ -9,7 +9,9 @@ module.exports = function (onOpen, connStr) {
     connStr = connStr || process.env.MONGODB;
     mongoose.connect(connStr, {
         useNewUrlParser: true,
-        /* other options */
+        useFindAndModify: false,
+        useCreateIndex: true,
+        useUnifiedTopology: true
     });
     mongoose.connection.on('open', onOpen);
 }
