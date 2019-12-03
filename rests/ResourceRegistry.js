@@ -24,12 +24,12 @@ function createResourceRegistry(createUrlBuilder, restDescriptor) {
                     return resourceId;
                 },
     
-                getUrl: function (fromResourceId, context, req) {
-                    return urlBuilder.getUrl(fromResourceId, context, req)
+                getUrl: function (fromResourceId, context, req, key) {
+                    return urlBuilder.getUrl(fromResourceId, context, req, key)
                 },
 
-                getTransitionUrl: function (destResourceId, context, req) {
-                    return __resources[destResourceId].getUrl(resourceId, context, req);
+                getTransitionUrl: function (destResourceId, context, req, key) {
+                    return __resources[destResourceId].getUrl(resourceId, context, req, key);
                 },
 
                 getLinks: function (context, req) {
