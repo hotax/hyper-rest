@@ -1,6 +1,6 @@
 const __ = require('underscore')
 
-function __getUpdatedAtNameFromSchema (schema){
+function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
 }
 
@@ -17,10 +17,10 @@ class Entity {
             })
     }
 
-    findById(id, projection) {
+    findById(id) {
         let __config = this.__config
 
-        return __config.schema.findById(id, projection || __config.projection)
+        return __config.schema.findById(id, __config.projection)
             .then(doc => {
                 let result
                 if (doc) result = doc.toJSON()
@@ -117,11 +117,27 @@ class Entity {
     }
 
     remove(id) {
-        return this.__config.schema.deleteOne({_id: id})
-        .then((data) => {
-            if(data.n === 0 && data.deletedCount === 0 ) return
-            return (data.deletedCount === 1 && data.ok === 1)
-        })
+        return this.__config.schema.deleteOne({
+                _id: id
+            })
+            .then((data) => {
+                if (data.n === 0 && data.deletedCount === 0) return
+                return (data.deletedCount === 1 && data.ok === 1)
+            })
+    }
+
+    listSubs(id, subFld) {
+        return this.__config.schema.findById(id)
+            .then(doc => {
+                if (doc) {
+                    const subs = doc[subFld]
+                    if (subs) {
+                        return __.map(subs, item => {
+                            return item.toJSON()
+                        })
+                    }
+                }
+            })
     }
 }
 
@@ -155,6 +171,10 @@ const __create = (config, addIn) => {
 
         remove(id) {
             return entity.remove(id)
+        },
+
+        listSubs(id, subFld) {
+            return entity.listSubs(id, subFld)
         },
 
         ...addIn

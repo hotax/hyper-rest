@@ -1,20 +1,14 @@
 const mongoose = require('mongoose'),
-    Schema = mongoose.Schema,
-    transformOption = require('./DocTransformOption'),
-    __ = require('underscore'), 
+    createSchema = require('./CreateSchema'),
     updateIfCurrentPlugin = require('mongoose-update-if-current').updateIfCurrentPlugin
 
 function createCollection(config) {
+    const {indexes, pres, posts} = config
     const timestamps = config.timestamps || true
-    const sm = new Schema(config.schema, {
-        ...transformOption,
-        autoCreate: true,
-        timestamps
-    })
+    const options = {indexes, pres, posts, timestamps}
+    const sm = createSchema(config.schema, options)
     sm.plugin(updateIfCurrentPlugin)
-    __.each(config.indexes, (idx) => {
-        sm.index(idx.index, idx.options)
-    })
+    
     return mongoose.model(config.name, sm);
 }
 

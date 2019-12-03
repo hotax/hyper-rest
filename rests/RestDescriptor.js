@@ -81,15 +81,18 @@ const __readHandler = function (context, restDesc, req, res) {
     }
 
     function __doHandlerHandle(id) {
-        return restDesc.handler(id)
+        return restDesc.handler(id, {...req.params, ...req.query})
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)
                 if(restDesc.dataRef) {
-                    __.each(restDesc.dataRef, (val, key) => {
-                        const refId = data[key]
-                        if(refId) {
-                            data[key] = context.getTransitionUrl(val, data, req)
-                        } 
+                    __.each(restDesc.dataRef, (key, resourceId) => {
+                        const ks = __.isArray(key) ? key : [key]
+                        __.each(ks, k => {
+                            const refId = data[k]
+                            if(refId) {
+                                data[k] = context.getTransitionUrl(resourceId, data, req, k)
+                            } 
+                        })
                     })
                 }
                 return __doResponse(data)
@@ -120,7 +123,7 @@ const __readHandler = function (context, restDesc, req, res) {
 };
 
 const __queryHandler = function (context, restDesc, req, res) {
-    var query = Object.assign({}, req.query);
+    var query = {...req.params, ...req.query}
     if (query.perpage) query.perpage = parseInt(query.perpage);
     if (query.page) query.page = parseInt(query.page);
     var representation;
@@ -175,7 +178,7 @@ const __deleteHandler = function (context, restDesc, req, res) {
             return __sendRes(res, 501)
 
         let id = req.params['id']
-        return restDesc.handler(id)
+        return restDesc.handler(id, {...req.params, ...req.query})
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)
                 const code = data ? 204 : 405
@@ -232,7 +235,7 @@ const __updateHandler = (context, restDesc, req, res) => {
     }
 
     function __handle(id) {
-        return restDesc.handler(id, req.body)
+        return restDesc.handler(id, req.body, {...req.params, ...req.query})
             .then(data => {
                 if (!data) return Promise.reject(409)
 
