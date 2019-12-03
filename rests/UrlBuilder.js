@@ -18,7 +18,7 @@ class UrlBuilder {
         this.__map = resourceUrlParamMap
     }
 
-    getUrl(resourceId, context, req) {
+    getUrl(resourceId, context, req, theCtxkey) {
         const keys = this.__urlPattern.keys
         let params = {}
         for (let i = 0; i < keys.length; i++) {
@@ -37,7 +37,7 @@ class UrlBuilder {
                 __.each(map, (val, key) => {
                     let pair = val.split('.');
                     if (pair[0] === 'context') {
-                        params[key] = context[pair[1]];
+                        params[key] = theCtxkey ? context[theCtxkey] : context[pair[1]];
                     } else {
                         params[key] = req[pair[0]][pair[1]];
                     }

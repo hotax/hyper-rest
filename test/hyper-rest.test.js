@@ -110,12 +110,10 @@ describe('hyper-rest', function () {
     });
 
     describe('同数据库相关部件', function () {
-        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function (done) {
+        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
-            connectDb(function () {
-                done()
-            });
+            connectDb(function () {});
         });
 
         describe('createObjectId', function () {
@@ -396,6 +394,14 @@ describe('hyper-rest', function () {
                     foo: 'context.fldVal'
                 }
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
+            })
+
+            it('指定上下文属性名', () => {
+                context.fldVal = paramVal
+                resourceUrlParamsMap[resourceId] = {
+                    foo: 'context'
+                }
+                expect(urlBuilder.getUrl(resourceId, context, req, 'fldVal')).eql(expectedUrl)
             })
 
             it('指定变量取值为请求变量值', () => {
@@ -867,6 +873,35 @@ describe('hyper-rest', function () {
                     request.get(url)
                         .expect(404, done);
                 })
+
+                it('URL中包含多个变量', function (done) {
+                    const urlPattern = '/url/:id/:subid'
+                    const url = '/url/1234/5678'
+                    const representation = {
+                        href: selfUrl,
+                        links: expectedLinks
+                    };
+                    representation[resourceId] = {
+                        ...objRead
+                    }
+                    urlResolve.callsFake(function (req, urlArg) {
+                        expect(urlArg).eql(url);
+                        return selfUrl;
+                    })
+                    currentResource.getLinks.callsFake((context, req) => {
+                        expect(context).eql(objRead);
+                        expect(req.originalUrl).eql(url);
+                        return Promise.resolve(expectedLinks);
+                    })
+                    restDescriptor.attach(app, currentResource, urlPattern, desc)
+                    handler.withArgs('1234', {id: '1234', subid: '5678'}).resolves(objRead)
+                    request.get(url)
+                        .expect('Content-Type', 'application/vnd.finelets.com+json; charset=utf-8')
+                        .expect('ETag', version)
+                        .expect('Last-Modified', toUtc(modifiedDate))
+                        .expect(200, representation, done)
+                })
+
 
                 describe('读取指定资源', () => {
                     let representation
