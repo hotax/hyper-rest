@@ -1,4 +1,4 @@
-const pathToRegexp = require('path-to-regexp'),
+const pathToRegexpObj = require('path-to-regexp'),
     __ = require('underscore')
 
 let __urlResolver
@@ -7,8 +7,8 @@ function parseUrlPattern(urlPattern) {
     let pattern = {
         keys: []
     };
-    pathToRegexp(urlPattern, pattern.keys);
-    pattern.toPath = pathToRegexp.compile(urlPattern);
+    pathToRegexpObj.pathToRegexp(urlPattern, pattern.keys);
+    pattern.toPath = pathToRegexpObj.compile(urlPattern);
     return pattern;
 }
 
