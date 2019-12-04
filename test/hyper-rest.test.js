@@ -110,10 +110,12 @@ describe('hyper-rest', function () {
     });
 
     describe('同数据库相关部件', function () {
-        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function () {
+        it('开发人员可以通过mongoose使应用连接到mongoDb数据库', function (done) {
             process.env.MONGODB = 'mongodb://localhost:27017/test';
             var connectDb = require('../db/mongoDb/ConnectMongoDb');
-            connectDb(function () {});
+            connectDb(function () {
+                done()
+            });
         });
 
         describe('createObjectId', function () {
@@ -1674,7 +1676,7 @@ describe('hyper-rest', function () {
                     server = appBuilder.run(function () {
                         superagent.get(url)
                             .end(function (e, res) {
-                                expect(e).eql(null);
+                                expect(e).null
                                 expect(res.body.name).eql('foo');
                                 done();
                             });
