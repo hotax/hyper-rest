@@ -42,6 +42,9 @@ module.exports = function (uriString, options) {
         if (db) return clearCollections(done);
         mongoose.connect(dbURI, {
             useNewUrlParser: true,
+            useFindAndModify: false,
+            useCreateIndex: true,
+            useUnifiedTopology: true
             /* other options */
         }, function (err, newDb) {
             if (err) return done(err);
@@ -61,7 +64,8 @@ module.exports = function (uriString, options) {
                 if (collection.collectionName.match(/^system\./)) return --todo;
                 if (options.skip instanceof Array && options.skip.indexOf(collection.collectionName) > -1) return --todo;
 
-                collection.remove({}, {
+                // collection.remove({}, {
+                collection.deleteMany({}, {
                     safe: true
                 }, function () {
                     if (--todo === 0) done();
