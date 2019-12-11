@@ -4,6 +4,15 @@ function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
 }
 
+function __getSubDocPathNames(schema, sub) {
+    const paths = schema.schema.paths[sub].schema.paths
+    const names = []
+    __.each(paths, (val, key) => {
+        if(key !== '_id') names.push(key)
+    })
+    return names
+}
+
 class Entity {
     constructor(config) {
         this.__config = config
@@ -14,6 +23,28 @@ class Entity {
         return new schema(data).save()
             .then(doc => {
                 return doc.toJSON()
+            })
+    }
+
+    createSubDoc(id, sub, data) {
+        let row
+        return this.__config.schema.findById(id)
+            .then(doc => {
+                if (!doc) return
+                row = doc[sub].push(data)
+                return doc.save()
+                    .then(doc => {
+                        doc = doc.toJSON()
+                        const data = {
+                            ...doc[sub][row - 1],
+                            __v: doc.__v
+                        }
+                        const modelName = this.__config.schema.modelName
+                        const updatedAtName = __getUpdatedAtNameFromSchema(this.__config.schema)
+                        data[modelName] = doc.id
+                        data[updatedAtName] = doc[updatedAtName]
+                        return data
+                    })
             })
     }
 
@@ -28,6 +59,23 @@ class Entity {
             })
     }
 
+    findSubDocById(id, sub, subId) {
+        const schema = this.__config.schema
+		return schema.findById(id)
+			.then(doc => {
+				if(!doc) return
+				let subDoc = doc[sub].id(subId)
+				if(!subDoc) return
+                subDoc = subDoc.toJSON()
+                const modelName = schema.modelName
+                const updatedAtName = __getUpdatedAtNameFromSchema(schema)
+                subDoc[modelName] = doc.id
+                subDoc.__v = doc.__v
+                subDoc[updatedAtName] = doc[updatedAtName].toJSON()
+				return subDoc
+			})
+    }
+    
     update(data) {
         let __config = this.__config
         return __config.schema.findById(data.id)
@@ -43,6 +91,28 @@ class Entity {
                             return doc.toJSON()
                         })
                 }
+            })
+    }
+
+    updateSubDoc(sub, data) {
+        const config = this.__config,
+        schema = config.schema,
+        id = data[schema.modelName]
+        return schema.findById(id)
+            .then(doc => {
+                if (!doc || doc.__v !== data.__v) return
+                let subdoc = doc[sub].id(data.id)
+                if (!subdoc) return
+                let subUpdatables = config.subUpdatables || {}
+                subUpdatables = subUpdatables[sub] || __getSubDocPathNames(schema, sub)
+                __.each(subUpdatables, fld => {
+                    if (__.isString(data[fld]) && data[fld].length === 0) subdoc[fld] = undefined
+                    else subdoc[fld] = data[fld]
+                })
+                return doc.save()
+                    .then(doc => {
+                        if (doc) return subdoc.toJSON()
+                    })
             })
     }
 
@@ -126,6 +196,20 @@ class Entity {
             })
     }
 
+    removeSubDoc(id, sub, subId) {
+        return this.__config.schema.findById(id)
+            .then(doc => {
+                if(!doc) return
+				let subDoc = doc[sub].id(subId)
+                if(!subDoc) return
+                subDoc.remove()
+                return doc.save()
+                    .then(() => {
+                        return true
+                    })
+            })
+    }
+
     listSubs(id, subFld) {
         return this.__config.schema.findById(id)
             .then(doc => {
@@ -143,7 +227,6 @@ class Entity {
 
 const __create = (config, addIn) => {
     const entity = new Entity(config)
-
     const obj = {
         create(data) {
             return entity.create(data)
@@ -151,6 +234,10 @@ const __create = (config, addIn) => {
 
         findById(id, projection) {
             return entity.findById(id, projection)
+        },
+
+        findSubDocById(id, sub, subId) {
+            return entity.findSubDocById(id, sub, subId)
         },
 
         search(cond, text, sort) {
@@ -169,12 +256,24 @@ const __create = (config, addIn) => {
             return entity.update(data)
         },
 
+        updateSubDoc(sub, data) {
+            return entity.updateSubDoc(sub, data)
+        },
+
         remove(id) {
             return entity.remove(id)
         },
 
+        removeSubDoc(id, sub, subId) {
+            return entity.removeSubDoc(id, sub, subId)
+        },
+
         listSubs(id, subFld) {
             return entity.listSubs(id, subFld)
+        },
+
+        createSubDoc(id, sub, data) {
+            return entity.createSubDoc(id, sub, data)
         },
 
         ...addIn

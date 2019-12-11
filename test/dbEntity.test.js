@@ -1,13 +1,10 @@
 const toUtc = require('../utils/UtcDate').toUtc
 
 describe('Db Entity', () => {
+    const ID_NOT_EXIST = '5ce79b99da3537277c3f3b66'
     const createCollection = require('../db/mongoDb/CreateCollection')
     const createSchema = require('../db/mongoDb/CreateSchema')
     let dbModel
-
-    describe('createSchema', ()=>{
-        
-    })
 
     describe('Document middleware', ()=>{   
         const preSave = function (next) {
@@ -66,14 +63,16 @@ describe('Db Entity', () => {
         const createEntity = require('../db/mongoDb/DbEntity')
 
         before(() => {
-            const subDocSchema = createSchema({sfld: String})
+            const subDocSchema = createSchema({sfld: String, otherfld: String})
+            const complexSubDocSchema = createSchema({sfld: String, sub: [subDocSchema]})
             dbModel = createCollection({
                 name: 'Foo',
                 schema: {
                     fld: String,
                     fld1: String,
                     type: Number,
-                    sub: [subDocSchema]
+                    sub: [subDocSchema],
+                    csub: [complexSubDocSchema]
                 },
                 indexes: [{
                         index: {
@@ -530,7 +529,6 @@ describe('Db Entity', () => {
         })
 
         describe('findById', () => {
-            let id
 
             it('未找到', () => {
                 const idNotExist = '5c349d1a6cf8de3cd4a5bc2c'
@@ -613,13 +611,9 @@ describe('Db Entity', () => {
                     .then((data) => {
                         expect(data).eqls(0)
                     })
-                    .catch((err) => {
-                        should.fail('Failed if come here')
-                    })
             })
 
             it('未找到', () => {
-                let idnotExist = '5cbc4b5a24ff3317d420baaa'
                 return dbSave(dbModel, toCreate)
                     .then((data) => {
                         return dbSave(dbModel, {
@@ -628,13 +622,260 @@ describe('Db Entity', () => {
                         })
                     })
                     .then(() => {
-                        return entity.remove(idnotExist)
+                        return entity.remove(ID_NOT_EXIST)
                     })
                     .then((data) => {
                         expect(data).undefined
                     })
-                    .catch((err) => {
-                        should.fail('Failed if come here')
+            })
+        })
+
+        describe('findSubDocById', () => {
+            const subField = 'sub'
+            let doc
+
+            beforeEach(() => {
+                return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo', otherfld: 'fee'}]})
+                    .then(data => {
+                        doc = data
+                    })
+            })
+
+            it('any exception', () => {
+                return entity.findSubDocById('abc')
+                    .should.be.rejectedWith()
+            })
+
+            it('未找到', () => {
+                return entity.findSubDocById(ID_NOT_EXIST, subField, doc[subField][0].id)
+                    .then(data => {
+                        expect(data).not.exist
+                    })
+
+            })
+
+            it('未找到子文档', () => {
+                return entity.findSubDocById(doc.id, subField, ID_NOT_EXIST)
+                    .then(data => {
+                        expect(data).not.exist
+                    })
+
+            })
+
+            it('子文档存在', () => {
+                return entity.findSubDocById(doc.id, subField, doc[subField][0].id)
+                    .then(data => {
+                        expect(data).eql({
+                            Foo: doc.id,
+                            id: doc[subField][0].id,
+                            sfld: 'foo',
+                            otherfld: 'fee',
+                            __v: doc.__v,
+                            updatedAt: doc.updatedAt
+                        })
+                    })
+            })
+        })
+
+        describe('createSubDoc', () => {
+            let id, __v
+
+            beforeEach(() => {
+                return dbSave(dbModel, toCreate)
+                .then(doc => {
+                    id = doc.id
+                    __v = doc.__v
+                })
+            })
+
+            it('any exception', () => {
+                return entity.createSubDoc('abc')
+                    .should.be.rejectedWith()
+            })
+
+            it('parent doc is not found', () => {
+                return entity.createSubDoc(ID_NOT_EXIST)
+                    .then(doc => {
+                        expect(doc).not.exist
+                    })
+            })
+
+            it('create sub', () => {
+                let subDoc
+                return entity.createSubDoc(id, 'sub', {sfld: 'foo'})
+                    .then(doc => {
+                        subDoc = doc
+                        return dbModel.findById(id)
+                    })
+                    .then(doc => {
+                        doc = doc.toJSON()
+                        expect(subDoc).eql({
+                            Foo: doc.id,
+                            id: doc.sub[0].id,
+                            sfld: 'foo',
+                            updatedAt: doc.updatedAt,
+                            __v: __v + 1
+                        })
+                    })
+            })
+        })
+
+        describe('updateSubDoc', () => {
+            const updatedVal = 'updated'
+            let doc, toUpdate
+            beforeEach(() => {
+                return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo', otherfld: 'fee'}]})
+                    .then((d) => {
+                        doc = d
+                        toUpdate = {
+                            id: doc.sub[0].id,
+                            Foo: doc.id,
+                            __v: doc.__v,
+                            sfld: updatedVal,
+                            otherfld: updatedVal
+                        }
+                    })
+            })
+
+            it('any exception', () => {
+                toUpdate.Foo = 'abc'
+                return entity.updateSubDoc('sub', toUpdate)
+                    .should.be.rejectedWith()
+            })
+
+            it('sub field not exist', () => {
+                return entity.updateSubDoc('subNotExist', toUpdate)
+                    .should.be.rejectedWith()
+            })
+
+            it('parent doc is not found', () => {
+                return entity.updateSubDoc('sub', {})
+                    .then(d => {
+                        expect(d).not.exist
+                    })
+            })
+
+            it('subdoc is not found', () => {
+                return entity.updateSubDoc('sub', {Foo: doc.id, id: ID_NOT_EXIST})
+                    .then(d => {
+                        expect(d).not.exist
+                    })
+            })
+
+            it('版本不一致时不做更新', () => {
+                return entity.updateSubDoc('sub', {
+                        id: doc.sub[0].id,
+                        Foo: doc.id,
+                        __v: 2
+                    })
+                    .then((doc) => {
+                        expect(doc).not.exist;
+                    })
+            })
+
+            describe('成功更新', () => {
+                let subDoc, updatedDoc
+                function testUpdateSubDoc(data) {
+                    return entity.updateSubDoc('sub', data)
+                    .then((d) => {
+                        subDoc = d
+                        return dbModel.findById(doc.id)
+                    })
+                    .then((d) => {
+                        updatedDoc = d.toJSON()
+                        expect(subDoc.id).eqls(updatedDoc.sub[0].id)
+                        expect(updatedDoc.updatedAt).not.eql(doc.updatedAt)
+                        expect(updatedDoc.__v).eqls(doc.__v + 1)
+                    })
+                } 
+
+                beforeEach(() => {
+                    toUpdate = {
+                        id: doc.sub[0].id,
+                        Foo: doc.id,
+                        __v: doc.__v,
+                        sfld: updatedVal,
+                        otherfld: updatedVal
+                    }
+                })
+
+                it('更新所有字段', () => {
+                    return testUpdateSubDoc(toUpdate)
+                        .then(() => {
+                            expect(subDoc.sfld).eqls(updatedVal)
+                            expect(subDoc.otherfld).eqls(updatedVal)
+                        })
+                })
+
+                it('指定可更新字段', () => {
+                    entityConfig.subUpdatables = {sub: ['sfld']}
+                    return testUpdateSubDoc(toUpdate)
+                        .then(() => {
+                            expect(subDoc.sfld).eqls(updatedVal)
+                            expect(subDoc.otherfld).eqls(doc.sub[0].otherfld)
+                        })
+                })
+    
+                it('删除字段值', () => {
+                    delete toUpdate.otherfld
+                    return testUpdateSubDoc(toUpdate)
+                        .then(() => {
+                            expect(subDoc.sfld).eqls(updatedVal)
+                            expect(subDoc.otherfld).not.exist
+                        })
+                })
+
+                it('以空字串删除字段值', () => {
+                    toUpdate.otherfld = ''
+                    return testUpdateSubDoc(toUpdate)
+                        .then(() => {
+                            expect(subDoc.sfld).eqls(updatedVal)
+                            expect(subDoc.otherfld).not.exist
+                        })
+                })
+            })
+        })
+
+        describe('removeSubDoc', () => {
+            const subField = 'sub'
+            let doc
+
+            beforeEach(() => {
+                return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo1', otherfld: 'fee1'}, {sfld: 'foo2', otherfld: 'fee2'}]})
+                    .then(data => {
+                        doc = data
+                    })
+            })
+
+            it('any exception', () => {
+                return entity.removeSubDoc('abc', subField, doc[subField][0].id)
+                    .should.be.rejectedWith()
+            })
+
+            it('未找到', () => {
+                return entity.removeSubDoc(ID_NOT_EXIST, subField, doc[subField][0].id)
+                    .then((data) => {
+                        expect(data).undefined
+                    })
+            })
+
+            it('未找到子文档', () => {
+                return entity.removeSubDoc(doc.id, subField, ID_NOT_EXIST)
+                    .then((data) => {
+                        expect(data).undefined
+                    })
+            })
+
+            it('删除', () => {
+                return entity.removeSubDoc(doc.id, subField, doc[subField][0].id)
+                    .then((data) => {
+                        expect(data).true
+                        return dbModel.findById(doc.id)
+                    })
+                    .then((data) => {
+                        data = data.toJSON()
+                        expect(data[subField]).eql([{id: doc[subField][1].id, sfld: 'foo2', otherfld: 'fee2'}])
+                        expect(data.__v).eql(1)
                     })
             })
         })
