@@ -40,10 +40,10 @@ class UrlBuilder {
 
     getUrl(resourceId, context, req) {
         let params = this.__urlPattern.getUrlParamsByKeys(req, context)
-        let map = this.__map
+        const map = this.__map.toParams(resourceId, req, context)
         params = {
             ...params,
-            ...map.toParams(resourceId, req, context)
+            ...map
         }
         return this.__urlPattern.toPath(req, params)
     }

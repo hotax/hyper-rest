@@ -9,12 +9,12 @@ function createResourceRegistry(createUrlBuilder, restDescriptor) {
         setTransitionGraph: function (graph) {
             __transGraph = graph;
         },
-    
+
         getTransitionUrl: function (resourceId, destResourceId, context, req) {
             var resource = __resources[destResourceId];
             return resource.getUrl(resourceId, context, req);
         },
-    
+
         attach: function (router, resourceId, resourceDesc) {
             if (!resourceDesc.url) throw 'a url must be defined!';
             if (!resourceDesc.rests || resourceDesc.rests.length < 1) throw 'no restful service is defined!';
@@ -23,9 +23,10 @@ function createResourceRegistry(createUrlBuilder, restDescriptor) {
                 getResourceId: function () {
                     return resourceId;
                 },
-    
+
                 getUrl: function (fromResourceId, context, req, key) {
-                    return urlBuilder.getUrl(fromResourceId, context, req, key)
+                    return key ? urlBuilder.refUrl(fromResourceId, context, req, key) :
+                        urlBuilder.getUrl(fromResourceId, context, req)
                 },
 
                 getTransitionUrl: function (destResourceId, context, req, key) {
@@ -37,11 +38,11 @@ function createResourceRegistry(createUrlBuilder, restDescriptor) {
                     return Promise.resolve(links)
                 }
             };
-    
+
             resourceDesc.rests.forEach(function (service) {
                 restDescriptor.attach(router, resource, resourceDesc.url, service);
             });
-    
+
             __resources[resourceId] = resource;
             return resource;
         }

@@ -33,6 +33,7 @@ class __CtxUrlRefParser {
 
         function __doFieldRefUrl(ctx, ref) {
             const refVal = ctx[ref]
+            if (!refVal) return
             const params = {
                 ...constParams
             }

@@ -88,10 +88,7 @@ const __readHandler = function (context, restDesc, req, res) {
                     __.each(restDesc.dataRef, (key, resourceId) => {
                         const ks = __.isArray(key) ? key : [key]
                         __.each(ks, k => {
-                            const refId = data[k]
-                            if(refId) {
-                                data[k] = context.getTransitionUrl(resourceId, data, req, k)
-                            } 
+                            context.getTransitionUrl(resourceId, data, req, k) 
                         })
                     })
                 }

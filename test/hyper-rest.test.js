@@ -387,16 +387,16 @@ describe('hyper-rest', function () {
         })
 
         describe('ContextUrlRefParser', () => {
-            const urlPatternToPath = sinon.stub(),
-            parserBuilder = require('../rests/CtxUrlRefParser')(urlPatternToPath),
-            req = { req: 'http request' },
+            const req = { req: 'http request' },
             refKey = 'refkey',
-            constParams = {v: 'const params pairs'},
-            parser = parserBuilder(req, refKey, constParams)
-            let ctx
+            constParams = {v: 'const params pairs'}
+            let urlPatternToPath, parserBuilder, parser, ctx
 
             beforeEach(() => {
                 ctx = {}
+                urlPatternToPath = sinon.stub(),
+                parserBuilder = require('../rests/CtxUrlRefParser')(urlPatternToPath),
+                parser = parserBuilder(req, refKey, constParams)
             })
 
             it('单个属性', () => {
@@ -411,6 +411,18 @@ describe('hyper-rest', function () {
 
                 parser.refUrl(ctx, fldName)
                 expect(ctx[fldName]).eql(expectedUrl)
+            })
+
+            it('单个属性-上下文无知无值', () => {
+                fldName = 'fooFld',
+                urlParams = {...constParams}
+                urlPatternToPath = sinon.spy()
+                parserBuilder = require('../rests/CtxUrlRefParser')(urlPatternToPath),
+                parser = parserBuilder(req, refKey, constParams)
+                
+                parser.refUrl(ctx, fldName)
+                expect(ctx[fldName]).undefined
+                expect(urlPatternToPath.notCalled).true
             })
 
             it('子文档属性', () => {
@@ -775,7 +787,7 @@ describe('hyper-rest', function () {
                     request.get(url)
                         .expect(500, done)
                 });
-            });
+            })
 
             describe('查询服务', function () {
                 var elementResourceId, reqQuery, searchStub, resultCollection;
@@ -893,7 +905,7 @@ describe('hyper-rest', function () {
                     request.get(url)
                         .expect(500, err, done);
                 });
-            });
+            })
 
             describe('创建资源服务', function () {
                 let targetResourceId, reqBody, handler, objCreated;
@@ -962,7 +974,7 @@ describe('hyper-rest', function () {
                         .send(reqBody)
                         .expect(500, done);
                 });
-            });
+            })
 
             describe('读取资源状态服务', function () {
                 const resourceId = "fuuuu",
@@ -1094,7 +1106,7 @@ describe('hyper-rest', function () {
                         currentResource.getTransitionUrl.callsFake((target, context, req) => {
                             expect(target).eql('foo')
                             expect(context).eql(objRead)
-                            return foourl
+                            context.foo = foourl
                         })
                         representation[resourceId].foo = foourl
                         request.get(url)
