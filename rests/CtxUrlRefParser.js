@@ -6,7 +6,7 @@ class __CtxUrlRefParser {
     constructor(req, refKey, constParams) {
         this.req = req
         this.refKey = refKey
-        this.constParams = constParams
+        this.constParams = constParams || {}
     }
 
     refUrl(ctx, refExp) {

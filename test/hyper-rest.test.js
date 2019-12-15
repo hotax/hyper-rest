@@ -551,14 +551,6 @@ describe('hyper-rest', function () {
                 expect(urlBuilder.getUrl(resourceId, context, req)).eql(expectedUrl)
             })
 
-            it('指定上下文属性名', () => {
-                context.fldVal = paramVal
-                resourceUrlParamsMap[resourceId] = {
-                    foo: 'context'
-                }
-                expect(urlBuilder.getUrl(resourceId, context, req, 'fldVal')).eql(expectedUrl)
-            })
-            
             it('指定变量取值为请求变量值', () => {
                 req.params.fldVal = paramVal
                 resourceUrlParamsMap[resourceId] = {
