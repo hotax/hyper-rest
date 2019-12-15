@@ -340,6 +340,137 @@ describe('hyper-rest', function () {
     });
 
     describe('Restful', function () {
+        describe('MapContextToUrlParams', () => {
+            const createMapContextToUrlParams = require('../rests/MapContextToUrlParams'),
+            resourceId = 'foo'
+            let mapContextToUrlParams, context, req, map
+
+            beforeEach(() => {
+                map = {}
+                context = {}
+                req = {
+                    params: {},
+                    query: {}
+                }
+                mapContextToUrlParams = createMapContextToUrlParams(map)
+            })
+
+            it('未给出变量映射表', () => {
+                mapContextToUrlParams = createMapContextToUrlParams()
+                expect(mapContextToUrlParams.toParams(resourceId, req, context)).eql({})
+            })
+
+            it('指定资源未给出变量映射表', () => {
+                expect(mapContextToUrlParams.toParams(resourceId, req, context)).eql({})
+            })
+
+            it('路径变量映射', () => {
+                const foo = 'foo',
+                fee = 'fee',
+                fuu = 'fuu'
+                req.params = {foo}
+                req.query = {fee}
+                context = {fuu}
+                map[resourceId] = {foo: 'params.foo', fee: 'query.fee', fuu: 'context.fuu'}
+                expect(mapContextToUrlParams.toParams(resourceId, req, context)).eql({
+                    foo, fee, fuu
+                })
+            })
+
+            it('路径变量引用', () => {
+                const refkey = 'fuu'
+                map[resourceId] = {foo: 'params.foo', fee: 'query.fee'}
+                map[resourceId][refkey] = 'context'
+                const rtn = mapContextToUrlParams.getRefKey(resourceId)
+                expect(rtn).eql(refkey)
+            })
+        })
+
+        describe('ContextUrlRefParser', () => {
+            const urlPatternToPath = sinon.stub(),
+            parserBuilder = require('../rests/CtxUrlRefParser')(urlPatternToPath),
+            req = { req: 'http request' },
+            refKey = 'refkey',
+            constParams = {v: 'const params pairs'},
+            parser = parserBuilder(req, refKey, constParams)
+            let ctx
+
+            beforeEach(() => {
+                ctx = {}
+            })
+
+            it('单个属性', () => {
+                const expectedUrl = '/rest/url/expected',
+                fldName = 'fooFld',
+                fldVal = 'fooFldVal',
+                urlParams = {...constParams}
+
+                ctx[fldName] = fldVal
+                urlParams[refKey] = fldVal
+                urlPatternToPath.withArgs(req, urlParams).returns(expectedUrl)
+
+                parser.refUrl(ctx, fldName)
+                expect(ctx[fldName]).eql(expectedUrl)
+            })
+
+            it('子文档属性', () => {
+                const expectedUrl = '/rest/url/expected',
+                fldName = 'fooFld',
+                fldVal = 'fooFldVal',
+                urlParams = {...constParams}
+
+                ctx.foo = {fee: {}}
+                ctx.foo.fee[fldName] = fldVal
+                urlParams[refKey] = fldVal
+                urlPatternToPath.withArgs(req, urlParams).returns(expectedUrl)
+
+                parser.refUrl(ctx, `foo.fee.${fldName}`)
+                expect(ctx).eql({foo: {fee: {fooFld: expectedUrl}}})
+            })
+
+            it('子文档数组属性', () => {
+                const fooUrl = '/foo',
+                feeUrl = '/fee',
+                fooVal = 'fooVal',
+                feeVal = 'feeVal',
+                fooUrlParams = {...constParams},
+                feeUrlParams = {...constParams}
+
+                fooUrlParams[refKey] = fooVal
+                feeUrlParams[refKey] = feeVal
+                ctx.flds = [{fld: fooVal}, {fld: feeVal}]
+                urlPatternToPath.withArgs(req, fooUrlParams).returns(fooUrl)
+                urlPatternToPath.withArgs(req, feeUrlParams).returns(feeUrl)
+
+                parser.refUrl(ctx, 'flds.fld')
+                expect(ctx).eql({
+                    flds: [{fld: fooUrl}, {fld: feeUrl}]
+                })
+            })
+
+            it('多个属性', () => {
+                const fooUrl = '/foo',
+                feeUrl = '/fee',
+                fooFldName = 'fooFld',
+                fooFldVal = 'fooFldVal',
+                feeFldName = 'feeFld',
+                feeFldVal = 'feeFldVal',
+                fooUrlParams = {...constParams},
+                feeUrlParams = {...constParams}
+
+                fooUrlParams[refKey] = fooFldVal
+                feeUrlParams[refKey] = feeFldVal
+                ctx[fooFldName] = fooFldVal
+                ctx[feeFldName] = feeFldVal
+                urlPatternToPath.withArgs(req, fooUrlParams).returns(fooUrl)
+                urlPatternToPath.withArgs(req, feeUrlParams).returns(feeUrl)
+
+                parser.refUrl(ctx, [fooFldName, feeFldName])
+                expect(ctx[fooFldName]).eql(fooUrl)
+                expect(ctx[feeFldName]).eql(feeUrl)
+            })
+        })
+
         describe('UrlBuilder', () => {
             const urlTemplate = '/rest/:foo/sec1',
                 paramVal = 'paramVal',
@@ -358,6 +489,28 @@ describe('hyper-rest', function () {
             beforeEach(() => {
                 createUrlBuilder = require('../rests/UrlBuilder')()
                 urlBuilder = createUrlBuilder(urlTemplate, resourceUrlParamsMap)
+            })
+
+            describe('上下文引用URL', () => {
+                it('单个属性', () => {
+                    context.fldVal = paramVal
+                    resourceUrlParamsMap[resourceId] = {
+                        foo: 'context'
+                    }
+                    urlBuilder.refUrl(resourceId, context, req, 'fldVal')
+                    expect(context.fldVal).eql(expectedUrl)
+                })
+
+                it('多个属性', () => {
+                    context.foofld = 'foo'
+                    context.feefld = 'fee'
+                    resourceUrlParamsMap[resourceId] = {
+                        foo: 'context'
+                    }
+                    urlBuilder.refUrl(resourceId, context, req, ['foofld', 'feefld'])
+                    expect(context.foofld).eql('/rest/foo/sec1')
+                    expect(context.feefld).eql('/rest/fee/sec1')
+                })
             })
 
             it('无变量Url', () => {
@@ -405,7 +558,7 @@ describe('hyper-rest', function () {
                 }
                 expect(urlBuilder.getUrl(resourceId, context, req, 'fldVal')).eql(expectedUrl)
             })
-
+            
             it('指定变量取值为请求变量值', () => {
                 req.params.fldVal = paramVal
                 resourceUrlParamsMap[resourceId] = {
@@ -467,7 +620,7 @@ describe('hyper-rest', function () {
                     foo: fooDesc
                 });
             });
-        });
+        })
 
         describe("基本的资源状态迁移图解析器", function () {
             const context = {
@@ -570,7 +723,7 @@ describe('hyper-rest', function () {
                     ])
                 });
             })
-        });
+        })
 
         describe('对Rest服务的解析', function () {
             const bodyParser = require('body-parser'),
@@ -835,7 +988,7 @@ describe('hyper-rest', function () {
                             href: '/href2'
                         }
                     ]
-                let handler, objRead;
+                let handler, objRead
 
                 beforeEach(function () {
                     objRead = {
@@ -846,10 +999,10 @@ describe('hyper-rest', function () {
                         __v: version
                     }
 
-                    handler = sinon.stub();
+                    handler = sinon.stub()
                     desc = {
                         type: 'read',
-                        handler: handler
+                        handler
                     }
                     currentResource.getResourceId.returns(resourceId)
                     urlResolve.callsFake(function (req, urlArg) {
@@ -863,6 +1016,20 @@ describe('hyper-rest', function () {
                     })
                     restDescriptor.attach(app, currentResource, urlPattern, desc);
                 });
+
+                it('未定义服务处理逻辑', (done) => {
+                    delete desc.handler
+                    request.get(url)
+                        .expect(501, done)
+                })
+
+                it('应以函数表达服务处理逻辑', (done) => {
+                    desc.handler = 'not a function'
+                    request.get(url)
+                        .expect(501, done)
+                })
+
+                // TODO: 测试处理If-None-Match、If-Modified-Since
 
                 it('处理出错', (done) => {
                     handler.withArgs(id).rejects()
@@ -1283,7 +1450,7 @@ describe('hyper-rest', function () {
                         .expect(204, done);
                 })
             });
-        });
+        })
 
         describe('对资源描述的解析', function () {
             var request, router, handler, url;
@@ -1477,8 +1644,8 @@ describe('hyper-rest', function () {
                     expect(resource.getUrl(fromResourceId, context, req)).eql(expectedUrl);
                 });
             });
-        });
-    });
+        })
+    })
 
     describe('基于express实现', function () {
         describe('组装完整的URL', function () {
