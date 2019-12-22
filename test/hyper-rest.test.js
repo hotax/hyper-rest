@@ -386,7 +386,7 @@ describe('hyper-rest', function () {
             })
         })
 
-        describe('ContextUrlRefParser', () => {
+        describe('CtxUrlRefParser', () => {
             const req = { req: 'http request' },
             refKey = 'refkey',
             constParams = {v: 'const params pairs'}
