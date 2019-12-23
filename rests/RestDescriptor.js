@@ -22,19 +22,28 @@ const __attachHandler = function (router, method, context, urlPattern, restDesc)
 };
 
 const __getHandler = function (context, restDesc, req, res) {
-    var query = {...req.query}
+    var query = {...req.params, ...req.query}
     var representation;
     return restDesc.handler(query)
+        .then((data) => {
+            if (__.isUndefined(data)) return __sendRes(res, 404) 
+            if(restDesc.dataRef) {
+                __.each(restDesc.dataRef, (key, resourceId) => {
+                    const ks = __.isArray(key) ? key : [key]
+                    __.each(ks, k => {
+                        context.getTransitionUrl(resourceId, data, req, k) 
+                    })
+                })
+            }
+            return data
+        })
         .then(function (data) {
-            var self = __urlResolve(req, req.originalUrl);
-            representation = {
-                data: data,
-                self: self
-            };
+            representation = data
             return context.getLinks(data, req);
         })
         .then(function (links) {
-            representation.links = links;
+            const self = __urlResolve(req, req.originalUrl)
+            representation.links = [...links, ...[{rel: 'self', href: self}]]
             res.set('Content-Type', MEDIA_TYPE);
             return res.status(200).json(representation);
         })
