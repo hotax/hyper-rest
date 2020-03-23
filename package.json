@@ -1,6 +1,6 @@
 {
   "name": "@finelets/hyper-rest",
-  "version": "3.0.15",
+  "version": "3.0.16",
   "description": "Restfull platform of hypermedia ",
   "main": "index.js",
   "directories": {
