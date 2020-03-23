@@ -258,6 +258,14 @@ const __createHandler = function (context, restDesc, req, res) {
         .then(function (data) {
             targetObject = data;
             urlToCreatedResource = context.getTransitionUrl(restDesc.target, data, req);
+            if(restDesc.dataRef) {
+                __.each(restDesc.dataRef, (key, resourceId) => {
+                    const ks = __.isArray(key) ? key : [key]
+                    __.each(ks, k => {
+                        context.getTransitionUrl(resourceId, data, req, k) 
+                    })
+                })
+            }
             return context.getLinks(data, req, restDesc.target);
         })
         .then(function (links) {
