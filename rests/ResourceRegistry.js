@@ -33,8 +33,9 @@ function createResourceRegistry(createUrlBuilder, restDescriptor) {
                     return __resources[destResourceId].getUrl(resourceId, context, req, key);
                 },
 
-                getLinks: function (context, req) {
-                    const links = __transGraph.getLinks(resourceId, context, req);
+                getLinks: function (context, req, destResourceId) {
+                    const dest = destResourceId ? destResourceId : resourceId
+                    const links = __transGraph.getLinks(dest, context, req);
                     return Promise.resolve(links)
                 }
             };
