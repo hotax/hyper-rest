@@ -258,7 +258,7 @@ const __createHandler = function (context, restDesc, req, res) {
         .then(function (data) {
             targetObject = data;
             urlToCreatedResource = context.getTransitionUrl(restDesc.target, data, req);
-            return context.getLinks(data, req);
+            return context.getLinks(data, req, restDesc.target);
         })
         .then(function (links) {
             res.set('Content-Type', MEDIA_TYPE);
