@@ -257,25 +257,13 @@ const __createHandler = function (context, restDesc, req, res) {
     return restDesc.handler(req)
         .then(function (data) {
             targetObject = data;
-            urlToCreatedResource = context.getTransitionUrl(restDesc.target, data, req);
-            if(restDesc.dataRef) {
-                __.each(restDesc.dataRef, (key, resourceId) => {
-                    const ks = __.isArray(key) ? key : [key]
-                    __.each(ks, k => {
-                        context.getTransitionUrl(resourceId, data, req, k) 
-                    })
-                })
-            }
-            return context.getLinks(data, req, restDesc.target);
-        })
-        .then(function (links) {
+            urlToCreatedResource = context.getTransitionUrl(restDesc.target, data, req)
             res.set('Content-Type', MEDIA_TYPE);
             res.set('Location', urlToCreatedResource);
             let representation = {
                 href: urlToCreatedResource
             };
             representation[restDesc.target] = targetObject;
-            if (links.length > 0) representation.links = links;
             return res.status(201).json(representation);
         })
         .catch(function () {
