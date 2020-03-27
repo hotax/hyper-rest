@@ -136,7 +136,8 @@ class Entity {
     }
 
     ifMatch(id, version) {
-        return this.__config.schema.findById(id)
+        const func = __.isObject(id) ? 'findOne' : 'findById'
+        return  this.__config.schema[func](id)
             .then(doc => {
                 if (doc) {
                     return doc.__v.toString() === version
@@ -147,7 +148,8 @@ class Entity {
 
     ifUnmodifiedSince(id, version) {
         const updatedAtName = __getUpdatedAtNameFromSchema(this.__config.schema)
-        return this.__config.schema.findById(id)
+        const func = __.isObject(id) ? 'findOne' : 'findById'
+        return  this.__config.schema[func](id)
             .then(doc => {
                 if (doc) {
                     return doc[updatedAtName].toUTCString() === version
