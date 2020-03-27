@@ -18,11 +18,16 @@ class Entity {
         this.__config = config
     }
 
+    // TODO: write test case
     create(data) {
-        const schema = this.__config.schema
-        return new schema(data).save()
+        const schema = this.__config.schema,
+        projection = this.__config.projection || {}
+		return new schema(data).save()
             .then(doc => {
-                return doc.toJSON()
+				return schema.findById(doc.id, {...projection, __v: 0, createdAt: 0, updatedAt: 0})
+            })
+            .then(doc => {
+				return doc.toJSON()
             })
     }
 
