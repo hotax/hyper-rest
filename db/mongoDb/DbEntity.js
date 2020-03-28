@@ -160,6 +160,7 @@ class Entity {
 
     search(cond, text) {
         const config = this.__config
+        cond = cond || {}
         let query = cond
 
         if (text && text.length > 0) {
@@ -185,7 +186,8 @@ class Entity {
             sort[updatedAtName] = -1
         }
         const limit = config.queryListLinesLimit || process.env.QUERY_LIST_LINES_LIMIT || 20
-        return config.schema.find(query, config.listable).sort(sort).limit(limit * 1)
+        const projection = {...config.listable, __v: 0, createdAt: 0, updatedAt: 0}
+        return config.schema.find(query, projection).sort(sort).limit(limit * 1)
             .then(data => {
                 return __.map(data, item => {
                     return item.toJSON()
