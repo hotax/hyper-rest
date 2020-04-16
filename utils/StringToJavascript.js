@@ -5,7 +5,7 @@ module.exports = (str) => {
         const script = ` "use strict"; return (${str})`
         return Function(script)()
     }catch(e) {
-        logger.error(`Invalid rockstar program: ${e.message}\r\n${e.stack}`)
+        logger.error(`Fail of transforming string into javascript: ${e.message}\r\n${e.stack}`)
         throw e
     }
 }
