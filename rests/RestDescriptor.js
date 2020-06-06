@@ -2,10 +2,10 @@
  * Created by clx on 2017/10/13.
  */
 const MEDIA_TYPE = 'application/vnd.finelets.com+json',
-__toHttpDate = require('../utils/UtcDate').toUtc
+    __toHttpDate = require('../utils/UtcDate').toUtc
 
 const __ = require('underscore'),
-logger = require('../app/Logger');
+    logger = require('../app/Logger');
 
 let __urlResolve, __cacheControl
 
@@ -22,16 +22,19 @@ const __attachHandler = function (router, method, context, urlPattern, restDesc)
 };
 
 const __getHandler = function (context, restDesc, req, res) {
-    var query = {...req.params, ...req.query}
+    var query = {
+        ...req.params,
+        ...req.query
+    }
     var representation;
     return restDesc.handler(query)
         .then((data) => {
-            if (__.isUndefined(data)) return __sendRes(res, 404) 
-            if(restDesc.dataRef) {
+            if (__.isUndefined(data)) return __sendRes(res, 404)
+            if (restDesc.dataRef) {
                 __.each(restDesc.dataRef, (key, resourceId) => {
                     const ks = __.isArray(key) ? key : [key]
                     __.each(ks, k => {
-                        context.getTransitionUrl(resourceId, data, req, k) 
+                        context.getTransitionUrl(resourceId, data, req, k)
                     })
                 })
             }
@@ -43,7 +46,10 @@ const __getHandler = function (context, restDesc, req, res) {
         })
         .then(function (links) {
             const self = __urlResolve(req, req.originalUrl)
-            representation.links = [...links, ...[{rel: 'self', href: self}]]
+            representation.links = [...links, ...[{
+                rel: 'self',
+                href: self
+            }]]
             res.set('Content-Type', MEDIA_TYPE);
             return res.status(200).json(representation);
         })
@@ -90,14 +96,17 @@ const __readHandler = function (context, restDesc, req, res) {
     }
 
     function __doHandlerHandle(id) {
-        return restDesc.handler(id, {...req.params, ...req.query})
+        return restDesc.handler(id, {
+                ...req.params,
+                ...req.query
+            })
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)
-                if(restDesc.dataRef) {
+                if (restDesc.dataRef) {
                     __.each(restDesc.dataRef, (key, resourceId) => {
                         const ks = __.isArray(key) ? key : [key]
                         __.each(ks, k => {
-                            context.getTransitionUrl(resourceId, data, req, k) 
+                            context.getTransitionUrl(resourceId, data, req, k)
                         })
                     })
                 }
@@ -129,7 +138,10 @@ const __readHandler = function (context, restDesc, req, res) {
 };
 
 const __queryHandler = function (context, restDesc, req, res) {
-    var query = {...req.params, ...req.query}
+    var query = {
+        ...req.params,
+        ...req.query
+    }
     if (query.perpage) query.perpage = parseInt(query.perpage);
     if (query.page) query.page = parseInt(query.page);
     var representation;
@@ -184,7 +196,10 @@ const __deleteHandler = function (context, restDesc, req, res) {
             return __sendRes(res, 501)
 
         let id = req.params['id']
-        return restDesc.handler(id, {...req.params, ...req.query})
+        return restDesc.handler(id, {
+                ...req.params,
+                ...req.query
+            })
             .then((data) => {
                 if (__.isUndefined(data)) return __sendRes(res, 404)
                 const code = data ? 204 : 405
@@ -197,7 +212,8 @@ const __updateHandler = (context, restDesc, req, res) => {
     return __doHandle()
         .catch(err => {
             if (__.isError(err)) err = 500
-            return __sendRes(res, err)
+            // return __sendRes(res, err)
+            res.status(500).send(err)
         })
 
     function __doHandle() {
@@ -241,7 +257,10 @@ const __updateHandler = (context, restDesc, req, res) => {
     }
 
     function __handle(id) {
-        return restDesc.handler(id, req.body, {...req.params, ...req.query})
+        return restDesc.handler(id, req.body, {
+                ...req.params,
+                ...req.query
+            })
             .then(data => {
                 if (!data) return Promise.reject(409)
 
@@ -287,21 +306,27 @@ const __entryHandler = function (context, restDesc, req, res) {
 const __uploadHandler = (context, restDesc, req, res) => {
     req.pipe(req.busboy)
     req.busboy.on('file', (fieldname, file, filename) => {
-        logger.debug('Uploading: ' + filename)
-        let writable = restDesc.handler()
-        writable.on('finish', () => {
-            return context.getLinks(null, req)
-                .then(function (links) {
-                    res.set('Content-Type', MEDIA_TYPE);
-                    return res.status(200).json({
-                        links: links
-                    });
-                })
-                .catch(() => {
-                    return res.status(500).end()
-                })
-        })
-        file.pipe(writable)
+        const representation = {}
+        return restDesc.handler(file, filename, req)
+            .then(function (data) {
+                const target = restDesc.target
+                targetObject = data;
+                const urlToCreatedResource = context.getTransitionUrl(target, data, req)
+                res.set('Content-Type', MEDIA_TYPE);
+                res.set('Location', urlToCreatedResource);
+                representation.href = urlToCreatedResource
+                representation[target] = targetObject;
+            })
+            .then(() => {
+                return context.getLinks(context, req)
+            })
+            .then(function (links) {
+                representation.links = links
+                return res.status(201).json(representation);
+            })
+            .catch(() => {
+                return res.status(500).end()
+            })
     })
 }
 
@@ -347,7 +372,7 @@ function __create(urlResolve, cacheControlParser) {
     return {
         attach: function (router, currentResource, urlPattern, restDesc) {
             const type = restDesc.type.toLowerCase();
-            if(type === 'http') {
+            if (type === 'http') {
                 const method = restDesc.method.toLowerCase()
                 return router[method](urlPattern, function (req, res) {
                     return restDesc.handler(req, res)

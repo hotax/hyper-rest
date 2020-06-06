@@ -1,21 +1,45 @@
 const mongodb = require('mongodb'),
-    mongoose = require('mongoose'),
-    logger = require('../../app/Logger')
+    mongoose = require('mongoose')
 
 const createGridFs = (config) => {
-    const gridFs = {
-        openUploadStream: (fn, handlers) => {
+    let bucket
+
+    const createBucket = () => {
+        if (!bucket) {
             const db = mongoose.connection.db
-            const bucket = new mongodb.GridFSBucket(db, config)
-            const writable = bucket.openUploadStream(fn)
-            writable
-                .on('error', (error) => {
-                    logger.error(error.message)
+            bucket = new mongodb.GridFSBucket(db, config)
+        }
+    }
+    const gridFs = {
+        upload: (readStream, fileName) => {
+            return new Promise((resolve, reject) => {
+                createBucket()
+                const writable = bucket.openUploadStream(fileName)
+                writable.on('finish', () => {
+                    return resolve(writable.id.toString())
                 })
-                .on('finish', () => {
-                    handlers(writable.id)
+                writable.on('error', (err) => {
+                    return reject(err)
                 })
-            return writable
+                readStream.pipe(writable)
+            })
+        },
+        remove: (id) => {
+            createBucket()
+            return new Promise((resolve, reject) => {
+                id = mongoose.Types.ObjectId(id)
+                bucket.delete(id, err => {
+                    if (err) {
+                        return reject(err)
+                    }
+                    return resolve()
+                })
+            })
+        },
+        openDownloadStream: (id) => {
+            createBucket()
+            id = mongoose.Types.ObjectId(id)
+            return bucket.openDownloadStream(id)
         }
     }
     return gridFs
