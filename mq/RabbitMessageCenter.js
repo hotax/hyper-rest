@@ -1,7 +1,7 @@
 const amqp = require('amqplib'),
     Promise = require('bluebird'),
     __ = require('underscore'),
-    logger = require('@finelets/hyper-rest/app/Logger');
+    logger = require('../app/Logger');
 
 let __conn;
 let __connTimes = 0
