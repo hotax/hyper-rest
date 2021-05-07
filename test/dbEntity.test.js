@@ -412,6 +412,26 @@ describe('Db Entity', () => {
                     })
             })
 
+            it('可以配置查询列表所不包含的字段', () => {
+                entityConfig.listable = '-fld -csub -sub -__v -createdAt -updatedAt' //'fld1, type'
+                return dbSave(dbModel, {
+                        type: 1,
+                        fld1: 'fee',
+                        fld: 'fEe'
+                    })
+                    .then(() => {
+                        return entity.search({fld: 'fEe'}, '')
+                    })
+                    .then(data => {
+                        expect(data.length).eqls(1)
+                        delete data[0].id
+                        expect(data[0]).eql({
+                            type: 1,
+                            fld1: 'fee'
+                        })
+                    })
+            })
+
             it('可以配置查询列表所包含的字段', () => {
                 entityConfig.listable = 'fld1 type'
                 return dbSave(dbModel, {

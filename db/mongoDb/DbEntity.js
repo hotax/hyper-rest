@@ -186,7 +186,7 @@ class Entity {
             sort[updatedAtName] = -1
         }
         const limit = config.queryListLinesLimit || process.env.QUERY_LIST_LINES_LIMIT || 20
-        const projection = {...config.listable, __v: 0, createdAt: 0, updatedAt: 0}
+        const projection = config.listable
         return config.schema.find(query, projection).sort(sort).limit(limit * 1)
             .then(data => {
                 return __.map(data, item => {
