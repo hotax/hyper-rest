@@ -104,8 +104,8 @@ describe('AppBuilder', function () {
         }
 
         it('运行一个缺省的Server', function (done) {
-            process.env.PORT = 80;
-            runAndCheckServer('http://localhost/staticResource.json', done);
+            defaultPort = 9001
+            runAndCheckServer('http://localhost:9001/staticResource.json', done);
         });
 
         it('系统管理员可以通过设置Node.js运行环境变量设定端口号', function (done) {
