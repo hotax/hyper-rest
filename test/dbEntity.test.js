@@ -598,7 +598,8 @@ describe('Db Entity', () => {
                         return dbModel.findById(docCreated.id)
                     })
                     .then(doc => {
-                        expect(doc.toJSON()).eqls(docCreated)
+                        expect(doc.toJSON()).eqls({...toCreate, sub:[], csub: [], id: docCreated.id, 
+                            __v: 0, createdAt: doc.createdAt.toJSON(), updatedAt: doc.createdAt.toJSON()})
                     })
             })
 
