@@ -10,7 +10,7 @@ describe('GridFs', () => {
     let testFileName, gridFs, rs, bucketName
     let filesColl, chunksColl
 
-    beforeEach(function (done) {
+    /* beforeEach(function (done) {
         bucketName = 'fs'
         testFileName = path.join(__dirname, './testhelper.js')
         gridFs = createGridFs()
@@ -20,6 +20,17 @@ describe('GridFs', () => {
             chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
             done()
         })
+    }) */
+    beforeEach(function () {
+        bucketName = 'fs'
+        testFileName = path.join(__dirname, './testhelper.js')
+        gridFs = createGridFs()
+        rs = fs.createReadStream(testFileName)
+        return clearDB()
+            .then(() => {
+                filesColl = mongoose.connection.db.collection(`${bucketName}.files`)
+                chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
+            })
     })
 
     describe('Upload', () => {
@@ -93,10 +104,10 @@ describe('GridFs', () => {
         it('remove', () => {
             return gridFs.remove(picId)
                 .then(() => {
-                    const files = filesColl.find()
+                    const files = filesColl.find({_id: picId})
                     files.toArray((err, docs) => {
                         expect(docs.length).eql(0)
-                        const chunks = chunksColl.find()
+                        const chunks = chunksColl.find({_id: picId})
                         chunks.toArray((err, docs) => {
                             expect(docs.length).eql(0)
                         })

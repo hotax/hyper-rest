@@ -34,8 +34,8 @@ describe('Db Entity', () => {
             })
         })
 
-        beforeEach((done) => {
-            return clearDB(done);
+        beforeEach(() => {
+            return clearDB();
         })
 
         it('pre and post save', ()=> {
@@ -57,11 +57,11 @@ describe('Db Entity', () => {
 
     describe('Entity', () => {
         let entityConfig, entity
-        const toCreate = {
+        let toCreate = {
             fld: 'foo'
         }
         const createEntity = require('../db/mongoDb/DbEntity')
-
+    
         before(() => {
             const subDocSchema = createSchema({sfld: String, otherfld: String})
             const complexSubDocSchema = createSchema({sfld: String, sub: [subDocSchema]})
@@ -94,16 +94,16 @@ describe('Db Entity', () => {
                 ]
             })
         })
-
-        beforeEach((done) => {
+    
+        beforeEach(() => {
             entityConfig = {
                 schema: dbModel,
                 updatables: ['fld']
             }
             entity = createEntity(entityConfig)
-            return clearDB(done);
+            return clearDB();
         })
-
+    
         describe('If-Match', () => {
             it('版本不一致', () => {
                 return dbSave(dbModel, toCreate)
@@ -114,7 +114,7 @@ describe('Db Entity', () => {
                         expect(result).false;
                     });
             })
-
+    
             it('一致', () => {
                 return dbSave(dbModel, toCreate)
                     .then((doc) => {
@@ -125,7 +125,7 @@ describe('Db Entity', () => {
                     });
             });
         })
-
+    
         describe('ifUnmodifiedSince', () => {
             it('自指定时间以来已发生改变', () => {
                 return dbSave(dbModel, toCreate)
@@ -137,7 +137,7 @@ describe('Db Entity', () => {
                         expect(result).false;
                     });
             })
-
+    
             it('自指定时间以来未改变', () => {
                 return dbSave(dbModel, toCreate)
                     .then((doc) => {
@@ -148,10 +148,10 @@ describe('Db Entity', () => {
                     });
             });
         })
-
+    
         describe('update', () => {
             let doc, version, updatedAt
-
+    
             beforeEach(() => {
                 return dbSave(dbModel, toCreate)
                     .then((d) => {
@@ -160,7 +160,7 @@ describe('Db Entity', () => {
                         doc = d
                     })
             })
-
+    
             it('版本不一致时不做更新', () => {
                 return entity.update({
                         id: doc.id,
@@ -170,7 +170,7 @@ describe('Db Entity', () => {
                         expect(doc).not.exist;
                     });
             });
-
+    
             it('更新时必须保证版本一致', () => {
                 return entity.update({
                         id: doc.id,
@@ -182,7 +182,7 @@ describe('Db Entity', () => {
                         expect(doc.updatedAt > updatedAt).true
                     });
             });
-
+    
             it('删除字段值', () => {
                 return entity.update({
                         id: doc.id,
@@ -193,7 +193,7 @@ describe('Db Entity', () => {
                         expect(doc.updatedAt > updatedAt).true
                     });
             });
-
+    
             it('以空字串删除字段值', () => {
                 return entity.update({
                         id: doc.id,
@@ -205,7 +205,7 @@ describe('Db Entity', () => {
                         expect(doc.updatedAt > updatedAt).true
                     });
             });
-
+    
             it('可以定义一个字段更新逻辑', () => {
                 const setvalues = (doc, data) => {
                     doc.fld = 'fee'
@@ -223,12 +223,12 @@ describe('Db Entity', () => {
                     });
             });
         })
-
+    
         describe('search', () => {
             beforeEach(() => {
                 entityConfig.searchables = ['fld', 'fld1']
             })
-
+    
             it('文档中无任何搜索字段', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -242,7 +242,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(0)
                     })
             })
-
+    
             it('无条件搜索时文档中无任何搜索字段', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -256,7 +256,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(1)
                     })
             })
-
+    
             it('搜索字段包括fld, fld1', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -283,7 +283,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(2)
                     })
             })
-
+    
             it('不区分大小写', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -306,7 +306,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(1)
                     })
             })
-
+    
             it('可以使用通配符‘.’匹配一个字', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -329,7 +329,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(1)
                     })
             })
-
+    
             it('可以使用通配符‘*’', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -357,7 +357,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(2)
                     })
             })
-
+    
             it('无条件', () => {
                 let saves = []
                 saves.push(dbSave(dbModel, {
@@ -383,7 +383,7 @@ describe('Db Entity', () => {
                         expect(data.length).eqls(3)
                     })
             })
-
+    
             it('配置排序', () => {
                 entityConfig.sort = {type: -1}
                 let saves = []
@@ -411,7 +411,7 @@ describe('Db Entity', () => {
                         expect(data[2].type).eql(1)
                     })
             })
-
+    
             it('可以配置查询列表所不包含的字段', () => {
                 entityConfig.listable = '-fld -csub -sub -__v -createdAt -updatedAt' //'fld1, type'
                 return dbSave(dbModel, {
@@ -431,7 +431,7 @@ describe('Db Entity', () => {
                         })
                     })
             })
-
+    
             it('可以配置查询列表所包含的字段', () => {
                 entityConfig.listable = 'fld1 type'
                 return dbSave(dbModel, {
@@ -451,10 +451,10 @@ describe('Db Entity', () => {
                         })
                     })
             })
-
+    
             describe('可以配置查询列表的记录数', () => {
                 let saves
-
+    
                 beforeEach(() => {
                     saves = []
                     saves.push(dbSave(dbModel, {
@@ -473,7 +473,7 @@ describe('Db Entity', () => {
                         fld: 'fEe'
                     }))
                 })
-
+    
                 it('通过环境变量配置全局', () => {
                     process.env.QUERY_LIST_LINES_LIMIT = '2'
                     return Promise.all(saves)
@@ -484,7 +484,7 @@ describe('Db Entity', () => {
                             expect(data.length).eqls(2)
                         })
                 })
-
+    
                 it('配置单个业务实体，且优先于全局配置', () => {
                     process.env.QUERY_LIST_LINES_LIMIT = '2'
                     entityConfig.queryListLinesLimit = 1
@@ -498,22 +498,22 @@ describe('Db Entity', () => {
                 })
             })
         })
-
+    
         describe('listSubs', () => {
             const subFld = 'sub'
             let id
-
+    
             beforeEach(() => {
                 id = '5c349d1a6cf8de3cd4a5bc2c'
             })
-
+    
             it('文档不存在', () => {
                 return entity.listSubs(id)
                     .then(list => {
                         expect(list).undefined
                     })
             })
-
+    
             it('子文档字段不存在', () => {
                 return dbSave(dbModel, toCreate)
                     .then(doc => {
@@ -524,7 +524,7 @@ describe('Db Entity', () => {
                         expect(list).undefined
                     })
             })
-
+    
             it('子文档不存在', () => {
                 return dbSave(dbModel, toCreate)
                     .then(doc => {
@@ -535,7 +535,7 @@ describe('Db Entity', () => {
                         expect(list).eql([])
                     })
             })
-
+    
             it('正确', () => {
                 return new dbModel({fld: 'foo', sub: [{sfld: 'foo'}]}).save()
                     .then(doc => {
@@ -547,18 +547,18 @@ describe('Db Entity', () => {
                     })
             })
         })
-
+    
         describe('findById', () => {
-
+    
             it('未找到', () => {
                 const idNotExist = '5c349d1a6cf8de3cd4a5bc2c'
                 return entity.findById(idNotExist)
                     .then(data => {
                         expect(data).not.exist
                     })
-
+    
             })
-
+    
             describe('记录存在', ()=>{
                 it('缺省输出指定记录的所有字段', () => {
                     let doc
@@ -571,7 +571,7 @@ describe('Db Entity', () => {
                             expect(data).eqls(doc)
                         })
                 })
-
+    
                 it('可以指定不输出的字段', () => {
                     let doc
                     entityConfig.projection = '-fld'
@@ -586,9 +586,9 @@ describe('Db Entity', () => {
                         })
                 })
             })
-
+    
         })
-
+    
         describe('create', () => {
             it('新增', () => {
                 let docCreated
@@ -602,21 +602,16 @@ describe('Db Entity', () => {
                             __v: 0, createdAt: doc.createdAt.toJSON(), updatedAt: doc.createdAt.toJSON()})
                     })
             })
-
+    
             it('记录重复', () => {
                 return dbSave(dbModel, toCreate)
                     .then(data => {
                         return entity.create(toCreate)
                     })
-                    .then(() => {
-                        should.fail('Failed when come here ')
-                    })
-                    .catch(err => {
-                        expect(err.code).eqls(11000)
-                    })
+                    .should.be.rejectedWith()
             })
         })
-
+    
         describe('delete', () => {
             it('删除', () => {
                 let doc
@@ -633,7 +628,7 @@ describe('Db Entity', () => {
                         expect(data).eqls(0)
                     })
             })
-
+    
             it('未找到', () => {
                 return dbSave(dbModel, toCreate)
                     .then((data) => {
@@ -650,39 +645,39 @@ describe('Db Entity', () => {
                     })
             })
         })
-
+    
         describe('findSubDocById', () => {
             const subField = 'sub'
             let doc
-
+    
             beforeEach(() => {
                 return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo', otherfld: 'fee'}]})
                     .then(data => {
                         doc = data
                     })
             })
-
+    
             it('any exception', () => {
                 return entity.findSubDocById('abc')
                     .should.be.rejectedWith()
             })
-
+    
             it('未找到', () => {
                 return entity.findSubDocById(ID_NOT_EXIST, subField, doc[subField][0].id)
                     .then(data => {
                         expect(data).not.exist
                     })
-
+    
             })
-
+    
             it('未找到子文档', () => {
                 return entity.findSubDocById(doc.id, subField, ID_NOT_EXIST)
                     .then(data => {
                         expect(data).not.exist
                     })
-
+    
             })
-
+    
             it('子文档存在', () => {
                 return entity.findSubDocById(doc.id, subField, doc[subField][0].id)
                     .then(data => {
@@ -697,10 +692,10 @@ describe('Db Entity', () => {
                     })
             })
         })
-
+    
         describe('createSubDoc', () => {
             let id, __v
-
+    
             beforeEach(() => {
                 return dbSave(dbModel, toCreate)
                 .then(doc => {
@@ -708,19 +703,19 @@ describe('Db Entity', () => {
                     __v = doc.__v
                 })
             })
-
+    
             it('any exception', () => {
                 return entity.createSubDoc('abc')
                     .should.be.rejectedWith()
             })
-
+    
             it('parent doc is not found', () => {
                 return entity.createSubDoc(ID_NOT_EXIST)
                     .then(doc => {
                         expect(doc).not.exist
                     })
             })
-
+    
             it('create sub', () => {
                 let subDoc
                 return entity.createSubDoc(id, 'sub', {sfld: 'foo'})
@@ -740,7 +735,7 @@ describe('Db Entity', () => {
                     })
             })
         })
-
+    
         describe('updateSubDoc', () => {
             const updatedVal = 'updated'
             let doc, toUpdate
@@ -757,32 +752,32 @@ describe('Db Entity', () => {
                         }
                     })
             })
-
+    
             it('any exception', () => {
                 toUpdate.Foo = 'abc'
                 return entity.updateSubDoc('sub', toUpdate)
                     .should.be.rejectedWith()
             })
-
+    
             it('sub field not exist', () => {
                 return entity.updateSubDoc('subNotExist', toUpdate)
                     .should.be.rejectedWith()
             })
-
+    
             it('parent doc is not found', () => {
                 return entity.updateSubDoc('sub', {})
                     .then(d => {
                         expect(d).not.exist
                     })
             })
-
+    
             it('subdoc is not found', () => {
                 return entity.updateSubDoc('sub', {Foo: doc.id, id: ID_NOT_EXIST})
                     .then(d => {
                         expect(d).not.exist
                     })
             })
-
+    
             it('版本不一致时不做更新', () => {
                 return entity.updateSubDoc('sub', {
                         id: doc.sub[0].id,
@@ -793,7 +788,7 @@ describe('Db Entity', () => {
                         expect(doc).not.exist;
                     })
             })
-
+    
             describe('成功更新', () => {
                 let subDoc, updatedDoc
                 function testUpdateSubDoc(data) {
@@ -809,7 +804,7 @@ describe('Db Entity', () => {
                         expect(updatedDoc.__v).eqls(doc.__v + 1)
                     })
                 } 
-
+    
                 beforeEach(() => {
                     toUpdate = {
                         id: doc.sub[0].id,
@@ -819,7 +814,7 @@ describe('Db Entity', () => {
                         otherfld: updatedVal
                     }
                 })
-
+    
                 it('更新所有字段', () => {
                     return testUpdateSubDoc(toUpdate)
                         .then(() => {
@@ -827,7 +822,7 @@ describe('Db Entity', () => {
                             expect(subDoc.otherfld).eqls(updatedVal)
                         })
                 })
-
+    
                 it('指定可更新字段', () => {
                     entityConfig.subUpdatables = {sub: ['sfld']}
                     return testUpdateSubDoc(toUpdate)
@@ -845,7 +840,7 @@ describe('Db Entity', () => {
                             expect(subDoc.otherfld).not.exist
                         })
                 })
-
+    
                 it('以空字串删除字段值', () => {
                     toUpdate.otherfld = ''
                     return testUpdateSubDoc(toUpdate)
@@ -856,37 +851,37 @@ describe('Db Entity', () => {
                 })
             })
         })
-
+    
         describe('removeSubDoc', () => {
             const subField = 'sub'
             let doc
-
+    
             beforeEach(() => {
                 return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo1', otherfld: 'fee1'}, {sfld: 'foo2', otherfld: 'fee2'}]})
                     .then(data => {
                         doc = data
                     })
             })
-
+    
             it('any exception', () => {
                 return entity.removeSubDoc('abc', subField, doc[subField][0].id)
                     .should.be.rejectedWith()
             })
-
+    
             it('未找到', () => {
                 return entity.removeSubDoc(ID_NOT_EXIST, subField, doc[subField][0].id)
                     .then((data) => {
                         expect(data).undefined
                     })
             })
-
+    
             it('未找到子文档', () => {
                 return entity.removeSubDoc(doc.id, subField, ID_NOT_EXIST)
                     .then((data) => {
                         expect(data).undefined
                     })
             })
-
+    
             it('删除', () => {
                 return entity.removeSubDoc(doc.id, subField, doc[subField][0].id)
                     .then((data) => {
@@ -902,3 +897,4 @@ describe('Db Entity', () => {
         })
     })
 })
+

@@ -21,8 +21,5 @@ module.exports = {
             clearDB: require('./db/mongoDb/clearDB'),
             transform: require('./db/mongoDb/DocTransformOption')
         }
-    },
-    session:{
-        mongoDb: require('./session/MongoDbSessionStore')
     }
 }

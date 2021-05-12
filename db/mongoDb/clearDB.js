@@ -1,4 +1,5 @@
 var url = require('url'),
+    {mapObject} = require('underscore'),
     mongoose = require('mongoose');
 
 var beforeEachRegistered = false;
@@ -16,7 +17,7 @@ module.exports = function (uriString, options) {
         uriString = 'mongodb://localhost/test';
     }
 
-    var db = mongoose.connection.db;
+    let db = mongoose.connection;
 
     if (!options.noClear && !beforeEachRegistered) {
         if ('function' == typeof beforeEach && beforeEach.length > 0) {
@@ -34,47 +35,37 @@ module.exports = function (uriString, options) {
         }
     }
 
-    return function (done) {
-        clearDB(done);
+    return function () {
+        return clearDB();
     };
 
-    function clearDB(done) {
-        if (db) return clearCollections(done);
-        mongoose.connect(dbURI, {
+    function clearDB() {
+        // if (db) return clearCollections(done);
+        return mongoose.connect(dbURI, {
             useNewUrlParser: true,
             useFindAndModify: false,
             useCreateIndex: true,
             useUnifiedTopology: true
             /* other options */
-        }, function (err, newDb) {
-            if (err) return done(err);
-            db = newDb;
-            clearCollections(done);
-        });
+        })
+        .then((conn) => {
+            db = conn
+            return clearCollections()
+        })
     }
 
-    function clearCollections(done) {
-        db.db.collections(function (err, collections) {
-            if (err) return done(err);
-
-            var todo = collections.length;
-            if (!todo) return done();
-
-            collections.forEach(function (collection) {
-                if (collection.collectionName.match(/^system\./)) return --todo;
-                if (options.skip instanceof Array && options.skip.indexOf(collection.collectionName) > -1) return --todo;
-
-                // collection.remove({}, {
-                collection.deleteMany({}, {
-                    safe: true
-                }, function () {
-                    if (--todo === 0) done();
-                });
-            });
-        });
+    function clearCollections() {
+        colls = db.connection.collections
+        let todo = []
+        mapObject(colls, (val, key) => {
+            todo.push(val.deleteMany({}, {
+                safe: true
+            })) 
+        })
+        return Promise.all(todo)
     }
 
     function closeDB() {
-        db.close();
+        return db.close();
     }
 };
