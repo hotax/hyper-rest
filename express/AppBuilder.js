@@ -50,10 +50,6 @@ module.exports.begin = function (base) {
             viewEngine = engine;
             return appBuilder;
         },
-        setSessionStore: function (store) {
-            store.attachTo(app);
-            return appBuilder;
-        },
         setJwt: (jwt, config) => {
             __jwt = jwt
             __jwtConfig = config
