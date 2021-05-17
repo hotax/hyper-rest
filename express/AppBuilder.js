@@ -79,7 +79,7 @@ module.exports.begin = function (base) {
             return appBuilder;
         },
         run: function (callback) {
-            const defaultPort = 9001   // Non-privileged user (not root) can't open a listening socket on ports below 1024
+            const defaultPort = 19001   // Non-privileged user (not root) can't open a listening socket on ports below 1024
             var port = process.env.PORT || defaultPort;
             return app.listen(port, callback);
         }
