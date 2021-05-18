@@ -21,10 +21,10 @@ class Entity {
     // TODO: write test case
     create(data) {
         const schema = this.__config.schema,
-        projection = this.__config.projection || {}
+        projection = this.__config.projection
 		return new schema(data).save()
             .then(doc => {
-				return schema.findById(doc.id, {...projection, __v: 0, createdAt: 0, updatedAt: 0})
+				return schema.findById(doc.id, projection)
             })
             .then(doc => {
 				return doc.toJSON()

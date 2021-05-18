@@ -602,6 +602,14 @@ describe('Db Entity', () => {
                             __v: 0, createdAt: doc.createdAt.toJSON(), updatedAt: doc.createdAt.toJSON()})
                     })
             })
+
+            it('新增 - 定义project', () => {
+                entityConfig.projection = ['fld']
+                return entity.create(toCreate)
+                    .then(data => {
+                        expect(data).eql({id: data.id, fld: 'foo'})
+                    })
+            })
     
             it('记录重复', () => {
                 return dbSave(dbModel, toCreate)
