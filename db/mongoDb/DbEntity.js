@@ -1,4 +1,5 @@
-const __ = require('underscore')
+const __ = require('underscore'),
+{findIndex} = __
 
 function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
@@ -11,6 +12,67 @@ function __getSubDocPathNames(schema, sub) {
         if(key !== '_id') names.push(key)
     })
     return names
+}
+
+const __genWhere = (subDocId, paths) => {
+	let whereClouse
+	for(i=0;i<paths.length;i++) {
+		if (i == 0) {
+			whereClouse = {}
+			whereClouse[paths[paths.length -i -1]] = {
+					$elemMatch: {_id: subDocId} 
+				}
+		} else {
+			up = {}
+			up[paths[paths.length -i -1]] = {
+				$elemMatch: whereClouse
+			}
+			whereClouse = up
+		}
+	}
+	return whereClouse
+}
+
+const __findSubDocFromParent = (doc, subDocId, paths) => {
+	let indexes = [paths.length]
+	__findIndex = (subDoc, from) => {
+		indexes[from] = findIndex(subDoc[paths[from]], el => {
+			if (from + 1 == paths.length) {
+				e = el._id == subDocId 
+				return e
+			}
+			__findIndex(el, from + 1)
+			e = indexes[from + 1] >= 0
+			return e
+		})
+	}
+	__findIndex(doc, 0)
+	
+	__getSub = (doc, lev, pathDoc) => {
+		sd = doc[paths[lev]][indexes[lev]]
+		if (lev == paths.length - 1) {
+            pathDoc[paths[lev]] = sd.toJSON()
+            return sd
+        } else {
+            pathDoc[paths[lev]] = sd.id
+        }
+		return __getSub(sd, lev + 1, pathDoc)
+	}
+
+    pathDoc = {}
+	subDoc = __getSub(doc, 0, pathDoc)
+    return {pathDoc, subDoc}
+}
+
+const __deleteSubDocById = (schema, subDocId, paths) => {
+	wh = __genWhere(subDocId, paths)
+	return schema.findOne(wh)
+		.then(parent => {
+			if (!parent) return
+			doc = __findSubDocFromParent(parent, subDocId, paths)
+			doc.remove()
+			return parent.save()
+		})
 }
 
 class Entity {
@@ -64,23 +126,22 @@ class Entity {
             })
     }
 
-    findSubDocById(id, sub, subId) {
+    findSubDocById(subDocId, paths) {
         const schema = this.__config.schema
-		return schema.findById(id)
-			.then(doc => {
-				if(!doc) return
-				let subDoc = doc[sub].id(subId)
-				if(!subDoc) return
-                subDoc = subDoc.toJSON()
-                const modelName = schema.modelName
-                const updatedAtName = __getUpdatedAtNameFromSchema(schema)
-                subDoc[modelName] = doc.id
-                subDoc.__v = doc.__v
-                subDoc[updatedAtName] = doc[updatedAtName].toJSON()
-				return subDoc
-			})
+        const wh = __genWhere(subDocId, paths)
+        if(!wh) return Promise.resolve()
+        
+        return schema.findOne(wh)
+            .then(doc => {
+                if (!doc) return
+                pathDoc = __findSubDocFromParent(doc, subDocId, paths).pathDoc
+                let {id, __v, updatedAt} = doc.toJSON()
+                subDoc = {__v, updatedAt, ...pathDoc}
+                subDoc[schema.modelName] = id
+                return subDoc
+            })
     }
-    
+
     update(data) {
         let __config = this.__config
         return __config.schema.findById(data.id)
@@ -205,17 +266,15 @@ class Entity {
             })
     }
 
-    removeSubDoc(id, sub, subId) {
-        return this.__config.schema.findById(id)
-            .then(doc => {
-                if(!doc) return
-				let subDoc = doc[sub].id(subId)
-                if(!subDoc) return
-                subDoc.remove()
-                return doc.save()
-                    .then(() => {
-                        return true
-                    })
+    removeSubDoc(subDocId, paths) {
+        const schema = this.__config.schema
+        const wh = __genWhere(subDocId, paths)
+        return schema.findOne(wh)
+            .then(parent => {
+                if (!parent) return
+                const doc = __findSubDocFromParent(parent, subDocId, paths)
+                doc.subDoc.remove()
+                return parent.save()
             })
     }
 
@@ -245,8 +304,8 @@ const __create = (config, addIn) => {
             return entity.findById(id, projection)
         },
 
-        findSubDocById(id, sub, subId) {
-            return entity.findSubDocById(id, sub, subId)
+        findSubDocById(id, path) {
+            return entity.findSubDocById(id, path)
         },
 
         search(cond, text, sort) {
@@ -273,8 +332,8 @@ const __create = (config, addIn) => {
             return entity.remove(id)
         },
 
-        removeSubDoc(id, sub, subId) {
-            return entity.removeSubDoc(id, sub, subId)
+        removeSubDoc(id, path) {
+            return entity.removeSubDoc(id, path)
         },
 
         listSubs(id, subFld) {
