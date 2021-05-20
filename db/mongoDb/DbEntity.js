@@ -1,5 +1,5 @@
 const __ = require('underscore'),
-{findIndex} = __
+{findIndex, initial, last} = __
 
 function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
@@ -82,24 +82,20 @@ class Entity {
             })
     }
 
-    createSubDoc(id, sub, data) {
-        let row
-        return this.__config.schema.findById(id)
+    createSubDoc(parentId, subPath, data) {
+        let row, subDoc
+        const parentPath = initial(subPath)
+        const subFld = last(subPath)
+        let findParent = parentPath.length == 0 ? this.__config.schema.findById(parentId) : this.findBySubDocId(parentId, parentPath)
+        return findParent    
             .then(doc => {
                 if (!doc) return
-                row = doc[sub].push(data)
+                subDoc = parentPath.length == 0 ? doc : __findSubDocFromParent(doc, parentId, parentPath).subDoc
+                row = subDoc[subFld].push(data)
                 return doc.save()
-                    .then(doc => {
-                        doc = doc.toJSON()
-                        const data = {
-                            ...doc[sub][row - 1],
-                            __v: doc.__v
-                        }
-                        const modelName = this.__config.schema.modelName
-                        const updatedAtName = __getUpdatedAtNameFromSchema(this.__config.schema)
-                        data[modelName] = doc.id
-                        data[updatedAtName] = doc[updatedAtName]
-                        return data
+                    .then(() => {
+                        doc = subDoc[subFld][row - 1].toJSON()
+                        return doc
                     })
             })
     }
@@ -335,8 +331,8 @@ const __create = (config, addIn) => {
             return entity.listSubs(id, subFld)
         },
 
-        createSubDoc(id, sub, data) {
-            return entity.createSubDoc(id, sub, data)
+        createSubDoc(parentId, subPath, data) {
+            return entity.createSubDoc(parentId, subPath, data)
         },
 
         ...addIn

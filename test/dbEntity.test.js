@@ -173,23 +173,13 @@ describe('Db Entity', () => {
             })
         
             describe('createSubDoc', () => {
-                let id, __v
-        
-                beforeEach(() => {
-                    return dbSave(dbModel, toCreate)
-                    .then(doc => {
-                        id = doc.id
-                        __v = doc.__v
-                    })
-                })
-        
                 it('any exception', () => {
-                    return entity.createSubDoc('abc')
+                    return entity.createSubDoc('abc', subPath, {sfld: 'fff'})
                         .should.be.rejectedWith()
                 })
         
                 it('parent doc is not found', () => {
-                    return entity.createSubDoc(ID_NOT_EXIST)
+                    return entity.createSubDoc(ID_NOT_EXIST, subPath, {sfld: 'fff'})
                         .then(doc => {
                             expect(doc).not.exist
                         })
@@ -197,20 +187,29 @@ describe('Db Entity', () => {
         
                 it('create sub', () => {
                     let subDoc
-                    return entity.createSubDoc(id, 'sub', {sfld: 'foo'})
-                        .then(doc => {
-                            subDoc = doc
-                            return dbModel.findById(id)
+                    return entity.createSubDoc(doc.id, ['sub'], {sfld: 'fff'})
+                        .then(data => {
+                            subDoc = data
+                            expect(subDoc).eql({id: subDoc.id, sfld: 'fff'})
+                            return dbModel.findById(doc.id)
                         })
                         .then(doc => {
                             doc = doc.toJSON()
-                            expect(subDoc).eql({
-                                Foo: doc.id,
-                                id: doc.sub[0].id,
-                                sfld: 'foo',
-                                updatedAt: doc.updatedAt,
-                                __v: __v + 1
-                            })
+                            expect(doc.sub.length).eql(1)
+                        })
+                })
+
+                it('create a deep sub', () => {
+                    let subDoc
+                    return entity.createSubDoc(doc.csub[1].id, subPath, {sfld: 'fff'})
+                        .then(data => {
+                            subDoc = data
+                            expect(subDoc).eql({id: subDoc.id, sfld: 'fff'})
+                            return dbModel.findById(doc.id)
+                        })
+                        .then(doc => {
+                            doc = doc.toJSON()
+                            expect(doc.csub[1].sub.length).eql(3)
                         })
                 })
             })
