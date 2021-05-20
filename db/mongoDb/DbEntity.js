@@ -64,17 +64,6 @@ const __findSubDocFromParent = (doc, subDocId, paths) => {
     return {pathDoc, subDoc}
 }
 
-const __deleteSubDocById = (schema, subDocId, paths) => {
-	wh = __genWhere(subDocId, paths)
-	return schema.findOne(wh)
-		.then(parent => {
-			if (!parent) return
-			doc = __findSubDocFromParent(parent, subDocId, paths)
-			doc.remove()
-			return parent.save()
-		})
-}
-
 class Entity {
     constructor(config) {
         this.__config = config
@@ -126,12 +115,17 @@ class Entity {
             })
     }
 
-    findSubDocById(subDocId, paths) {
+    findBySubDocId(subDocId, paths) {
         const schema = this.__config.schema
         const wh = __genWhere(subDocId, paths)
         if(!wh) return Promise.resolve()
-        
+
         return schema.findOne(wh)
+    }
+
+    findSubDocById(subDocId, paths) {
+        const schema = this.__config.schema
+        return this.findBySubDocId(subDocId, paths)
             .then(doc => {
                 if (!doc) return
                 pathDoc = __findSubDocFromParent(doc, subDocId, paths).pathDoc
@@ -267,14 +261,15 @@ class Entity {
     }
 
     removeSubDoc(subDocId, paths) {
-        const schema = this.__config.schema
-        const wh = __genWhere(subDocId, paths)
-        return schema.findOne(wh)
+        return this.findBySubDocId(subDocId, paths)
             .then(parent => {
                 if (!parent) return
                 const doc = __findSubDocFromParent(parent, subDocId, paths)
                 doc.subDoc.remove()
                 return parent.save()
+                    .then(() => {
+                        return true
+                    })
             })
     }
 

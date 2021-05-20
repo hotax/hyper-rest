@@ -344,22 +344,15 @@ describe('Db Entity', () => {
                         })
                 })
         
-                it('未找到子文档', () => {
-                    return entity.removeSubDoc(doc.id, subField, ID_NOT_EXIST)
-                        .then((data) => {
-                            expect(data).undefined
-                        })
-                })
-        
                 it('删除', () => {
-                    return entity.removeSubDoc(doc.id, subField, doc[subField][0].id)
+                    return entity.removeSubDoc(doc.csub[1].sub[1].id, subPath)
                         .then((data) => {
                             expect(data).true
                             return dbModel.findById(doc.id)
                         })
                         .then((data) => {
                             data = data.toJSON()
-                            expect(data[subField]).eql([{id: doc[subField][1].id, sfld: 'foo2', otherfld: 'fee2'}])
+                            expect(data.csub[1].sub.length).eql(1)
                             expect(data.__v).eql(1)
                         })
                 })
