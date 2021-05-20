@@ -263,17 +263,16 @@ class Entity {
             })
     }
 
-    listSubs(id, subFld) {
-        return this.__config.schema.findById(id)
+    listSubs(parentId, paths) {
+        const parentPath = initial(paths)
+        const subFld = last(paths)
+        let findParent = parentPath.length == 0 ? this.__config.schema.findById(parentId) : this.findBySubDocId(parentId, parentPath)
+        return findParent    
             .then(doc => {
-                if (doc) {
-                    const subs = doc[subFld]
-                    if (subs) {
-                        return __.map(subs, item => {
-                            return item.toJSON()
-                        })
-                    }
-                }
+                if (!doc) return []
+                let subDoc = parentPath.length == 0 ? doc : __findSubDocFromParent(doc, parentId, parentPath).subDoc
+                subDoc = subDoc.toJSON()
+                return subDoc[subFld] || []
             })
     }
 }
@@ -324,8 +323,9 @@ const __create = (config, addIn) => {
             return entity.removeSubDoc(id, path)
         },
 
-        listSubs(id, subFld) {
-            return entity.listSubs(id, subFld)
+        listSubs(parentId, path) {
+            path = isString(path) ? path.split('.') : path
+            return entity.listSubs(parentId, path)
         },
 
         createSubDoc(parentId, path, data) {

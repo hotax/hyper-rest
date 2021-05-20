@@ -134,6 +134,69 @@ describe('Db Entity', () => {
                     })
             })
 
+            describe('listSubDoc', () => {
+                it('id is not oObjectId type', () => {
+                    return entity.listSubs('abc', subPath)
+                        .should.be.rejectedWith()
+                })
+        
+                it('sub field not exist', () => {
+                    return entity.listSubs(doc.csub[1].id, 'csub.subNotExist')
+                        .then(d => {
+                            expect(d).eql([])
+                        })
+                })
+
+                it('parent field not exist', () => {
+                    return entity.listSubs(doc.csub[1].id, 'parentNotExist.subNotExist')
+                        .then(d => {
+                            expect(d).eql([])
+                        })
+                })
+        
+                it('subdoc is not found', () => {
+                    return entity.listSubs(ID_NOT_EXIST, 'csub.subNotExist')
+                        .then(d => {
+                            expect(d).eql([])
+                        })
+                })
+
+
+                it('subdocs of doc', () => {
+                    return entity.listSubs(doc.id, 'csub')
+                        .then(data => {
+                            expect(data).eql([
+                                {
+                                    id: doc.csub[0].id,
+                                    sfld: 'foo1',
+                                    sub: [
+                                        {id: doc.csub[0].sub[0].id, sfld: 'fee1'},
+                                        {id: doc.csub[0].sub[1].id, otherfld: 'fuu1'}
+                                    ]
+                                },
+                                {
+                                    id: doc.csub[1].id,
+                                    sfld: 'foo2',
+                                    sub: [
+                                        {id: doc.csub[1].sub[0].id, sfld: 'fee2'},
+                                        {id: doc.csub[1].sub[1].id, otherfld: 'fuu2'}
+                                    ]
+                                }
+                            ])
+                        })
+                })
+
+                it('成功', () => {
+                    return entity.listSubs(doc.csub[1].id, subPath)
+                        .then(data => {
+                            expect(data).eql([
+                                {id: doc.csub[1].sub[0].id, sfld: 'fee2'},
+                                {id: doc.csub[1].sub[1].id, otherfld: 'fuu2'}
+                            ])
+                        })
+                })
+            })
+
             describe('findSubDocById', () => {
                 
                 it('any exception', () => {
@@ -701,55 +764,6 @@ describe('Db Entity', () => {
                             expect(data.length).eqls(1)
                         })
                 })
-            })
-        })
-    
-        describe('listSubs', () => {
-            const subFld = 'sub'
-            let id
-    
-            beforeEach(() => {
-                id = '5c349d1a6cf8de3cd4a5bc2c'
-            })
-    
-            it('文档不存在', () => {
-                return entity.listSubs(id)
-                    .then(list => {
-                        expect(list).undefined
-                    })
-            })
-    
-            it('子文档字段不存在', () => {
-                return dbSave(dbModel, toCreate)
-                    .then(doc => {
-                        id= doc.id
-                        return entity.listSubs(id, 'notexist')
-                    })
-                    .then(list => {
-                        expect(list).undefined
-                    })
-            })
-    
-            it('子文档不存在', () => {
-                return dbSave(dbModel, toCreate)
-                    .then(doc => {
-                        id= doc.id
-                        return entity.listSubs(id, subFld)
-                    })
-                    .then(list => {
-                        expect(list).eql([])
-                    })
-            })
-    
-            it('正确', () => {
-                return new dbModel({fld: 'foo', sub: [{sfld: 'foo'}]}).save()
-                    .then(doc => {
-                        id= doc.id
-                        return entity.listSubs(id, subFld)
-                    })
-                    .then(list => {
-                        expect(list[0].sfld).eql('foo')
-                    })
             })
         })
     
