@@ -105,7 +105,7 @@ describe('Db Entity', () => {
         })
     
         describe('Subdocument', () => {
-            const subPath = ['csub', 'sub']
+            const subPath = 'csub.sub'
             let doc
         
             beforeEach(() => {
@@ -216,113 +216,64 @@ describe('Db Entity', () => {
         
             describe('updateSubDoc', () => {
                 const updatedVal = 'updated'
-                let doc, toUpdate
+                    path = 'csub.sub'
+                let toUpdate
                 beforeEach(() => {
-                    return dbSave(dbModel, {...toCreate, sub:[{sfld: 'foo', otherfld: 'fee'}]})
-                        .then((d) => {
-                            doc = d
-                            toUpdate = {
-                                id: doc.sub[0].id,
-                                Foo: doc.id,
-                                __v: doc.__v,
-                                sfld: updatedVal,
-                                otherfld: updatedVal
-                            }
-                        })
+                    toUpdate = {id: doc.csub[1].sub[1].id}
                 })
         
-                it('any exception', () => {
-                    toUpdate.Foo = 'abc'
+                it('id is not oObjectId type', () => {
+                    toUpdate.id = 'abc'
                     return entity.updateSubDoc('sub', toUpdate)
                         .should.be.rejectedWith()
                 })
         
                 it('sub field not exist', () => {
                     return entity.updateSubDoc('subNotExist', toUpdate)
-                        .should.be.rejectedWith()
-                })
-        
-                it('parent doc is not found', () => {
-                    return entity.updateSubDoc('sub', {})
                         .then(d => {
                             expect(d).not.exist
                         })
                 })
         
                 it('subdoc is not found', () => {
-                    return entity.updateSubDoc('sub', {Foo: doc.id, id: ID_NOT_EXIST})
+                    toUpdate.id = ID_NOT_EXIST
+                    return entity.updateSubDoc(path, toUpdate)
                         .then(d => {
                             expect(d).not.exist
                         })
                 })
         
                 it('版本不一致时不做更新', () => {
-                    return entity.updateSubDoc('sub', {
-                            id: doc.sub[0].id,
-                            Foo: doc.id,
-                            __v: 2
-                        })
+                    return entity.updateSubDoc(path, {...toUpdate, __v: doc.__v + 1})
                         .then((doc) => {
                             expect(doc).not.exist;
                         })
                 })
         
                 describe('成功更新', () => {
-                    let subDoc, updatedDoc
-                    function testUpdateSubDoc(data) {
-                        return entity.updateSubDoc('sub', data)
-                        .then((d) => {
-                            subDoc = d
-                            return dbModel.findById(doc.id)
-                        })
-                        .then((d) => {
-                            updatedDoc = d.toJSON()
-                            expect(subDoc.id).eqls(updatedDoc.sub[0].id)
-                            expect(updatedDoc.updatedAt).not.eql(doc.updatedAt)
-                            expect(updatedDoc.__v).eqls(doc.__v + 1)
-                        })
-                    } 
-        
-                    beforeEach(() => {
-                        toUpdate = {
-                            id: doc.sub[0].id,
-                            Foo: doc.id,
-                            __v: doc.__v,
-                            sfld: updatedVal,
-                            otherfld: updatedVal
-                        }
-                    })
+                    let subDoc
         
                     it('更新所有字段', () => {
-                        return testUpdateSubDoc(toUpdate)
+                        toUpdate = {...toUpdate, toUpdate: {sfld: updatedVal, otherfld: updatedVal}}
+                        return entity.updateSubDoc(path, toUpdate)
                             .then(() => {
+                                return dbModel.findById(doc.id)
+                            })
+                            .then((data) => {
+                                subDoc = data.csub[1].sub[1]
                                 expect(subDoc.sfld).eqls(updatedVal)
                                 expect(subDoc.otherfld).eqls(updatedVal)
                             })
                     })
         
-                    it('指定可更新字段', () => {
-                        entityConfig.subUpdatables = {sub: ['sfld']}
-                        return testUpdateSubDoc(toUpdate)
-                            .then(() => {
-                                expect(subDoc.sfld).eqls(updatedVal)
-                                expect(subDoc.otherfld).eqls(doc.sub[0].otherfld)
-                            })
-                    })
-        
                     it('删除字段值', () => {
-                        delete toUpdate.otherfld
-                        return testUpdateSubDoc(toUpdate)
+                        toUpdate = {...toUpdate, toUpdate: {sfld: updatedVal, otherfld: ''}}
+                        return entity.updateSubDoc(path, toUpdate)
                             .then(() => {
-                                expect(subDoc.sfld).eqls(updatedVal)
-                                expect(subDoc.otherfld).not.exist
+                                return dbModel.findById(doc.id)
                             })
-                    })
-        
-                    it('以空字串删除字段值', () => {
-                        toUpdate.otherfld = ''
-                        return testUpdateSubDoc(toUpdate)
-                            .then(() => {
+                            .then((data) => {
+                                subDoc = data.csub[1].sub[1]
                                 expect(subDoc.sfld).eqls(updatedVal)
                                 expect(subDoc.otherfld).not.exist
                             })

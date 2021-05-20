@@ -1,5 +1,5 @@
 const __ = require('underscore'),
-{findIndex, initial, last} = __
+{each, findIndex, initial, last, isString, isUndefined} = __
 
 function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
@@ -150,24 +150,18 @@ class Entity {
             })
     }
 
-    updateSubDoc(sub, data) {
-        const config = this.__config,
-        schema = config.schema,
-        id = data[schema.modelName]
-        return schema.findById(id)
+    updateSubDoc(path, data) {
+        return this.findBySubDocId(data.id, path)
             .then(doc => {
-                if (!doc || doc.__v !== data.__v) return
-                let subdoc = doc[sub].id(data.id)
-                if (!subdoc) return
-                let subUpdatables = config.subUpdatables || {}
-                subUpdatables = subUpdatables[sub] || __getSubDocPathNames(schema, sub)
-                __.each(subUpdatables, fld => {
-                    if (__.isString(data[fld]) && data[fld].length === 0) subdoc[fld] = undefined
-                    else subdoc[fld] = data[fld]
+                if (!doc || !isUndefined(data.__v) && data.__v != doc.__v) return
+                let subDoc = __findSubDocFromParent(doc, data.id, path).subDoc
+                each(data.toUpdate, (val, fld)  => {
+                    if (__.isString(val) && val.length === 0) subDoc[fld] = undefined
+                    else subDoc[fld] = val
                 })
                 return doc.save()
-                    .then(doc => {
-                        if (doc) return subdoc.toJSON()
+                    .then(() => {
+                        return subDoc.toJSON()
                     })
             })
     }
@@ -296,6 +290,7 @@ const __create = (config, addIn) => {
         },
 
         findSubDocById(id, path) {
+            path = isString(path) ? path.split('.') : path
             return entity.findSubDocById(id, path)
         },
 
@@ -315,8 +310,9 @@ const __create = (config, addIn) => {
             return entity.update(data)
         },
 
-        updateSubDoc(sub, data) {
-            return entity.updateSubDoc(sub, data)
+        updateSubDoc(path, data) {
+            path = isString(path) ? path.split('.') : path
+            return entity.updateSubDoc(path, data)
         },
 
         remove(id) {
@@ -324,6 +320,7 @@ const __create = (config, addIn) => {
         },
 
         removeSubDoc(id, path) {
+            path = isString(path) ? path.split('.') : path
             return entity.removeSubDoc(id, path)
         },
 
@@ -331,8 +328,9 @@ const __create = (config, addIn) => {
             return entity.listSubs(id, subFld)
         },
 
-        createSubDoc(parentId, subPath, data) {
-            return entity.createSubDoc(parentId, subPath, data)
+        createSubDoc(parentId, path, data) {
+            path = isString(path) ? path.split('.') : path
+            return entity.createSubDoc(parentId, path, data)
         },
 
         ...addIn
