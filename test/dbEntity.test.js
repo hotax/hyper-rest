@@ -104,6 +104,76 @@ describe('Db Entity', () => {
             return clearDB();
         })
     
+        describe('SubdocumentConfig', () => {
+            const foo = 'foo',
+                fee = 'fee',
+                fuu = 'fuu',
+                path = "any.path",
+                projectionConfig = {},
+                listableConfig = {},
+                subDocConfig = {},
+                createSubdocConfig = require('../db/mongoDb/CreateSubdocConfig')
+
+            let filters, source
+
+            describe('无子文档配置', () => {
+                beforeEach(() => {
+                    filters = createSubdocConfig()
+                })
+                
+                describe('单记录', () => {
+                    it('需过滤对象中的对象字段', () => {
+                        source = {foo, obj:{foo, fee}}
+                        expect(filters.filter(path, source)).eql({foo})
+                    })
+        
+                    it('需过滤对象中的数组字段', () => {
+                        source = {foo, obj:[foo, fee]}
+                        expect(filters.filter(path, source)).eql({foo})
+                    })
+                })
+
+                it('对列表进行过滤时， 对列表中的各元素的过滤规则同对单记录', () => {
+                    source = [{foo, obj:{foo, fee}}, {foo, obj:[foo, fee]}]
+                    expect(filters.filterFromList(path, source)).eql([{foo}, {foo}])
+                })
+            })
+
+            describe('配置子文档过滤字段时', () => {
+                const pathConfig = {}
+                
+                beforeEach(() => {
+                })
+
+                describe('单记录', () => {
+                    beforeEach(() => {
+                        pathConfig[path] = [foo, fee] 
+                        subDocConfig.projection = pathConfig
+                        filters = createSubdocConfig(subDocConfig)
+                    })
+
+                    it('过滤对象字段', () => {   
+                        source = {foo, fee, fuu}
+                        expect(filters.filter(path, source)).eql({foo, fee})
+                    })
+        
+                    it('过滤对象时缺省保留id、__v、updatedAt字段', () => {   
+                        source = {id:'fff', __v: 3, updatedAt: 123, foo, fee, fuu}
+                        expect(filters.filter(path, source)).eql({id:'fff', __v: 3, updatedAt: 123, foo, fee})
+                    })
+                })
+                
+                it('对列表进行过滤时， 过滤列表字段，且缺省保留id', () => {
+                    pathConfig[path] = [foo, fee] 
+                    subDocConfig.listable = pathConfig
+                    filters = createSubdocConfig(subDocConfig)
+
+                    source = [{foo, fee}, {id:'fff', foo}, {foo, fee, fuu}]
+                    expect(filters.filterFromList(path, source)).eql([{foo, fee}, {id:'fff', foo}, {foo, fee}])
+                })
+            })
+        })
+
         describe('Subdocument', () => {
             const subPath = 'csub.sub'
             let doc
@@ -168,19 +238,11 @@ describe('Db Entity', () => {
                             expect(data).eql([
                                 {
                                     id: doc.csub[0].id,
-                                    sfld: 'foo1',
-                                    sub: [
-                                        {id: doc.csub[0].sub[0].id, sfld: 'fee1'},
-                                        {id: doc.csub[0].sub[1].id, otherfld: 'fuu1'}
-                                    ]
+                                    sfld: 'foo1'
                                 },
                                 {
                                     id: doc.csub[1].id,
-                                    sfld: 'foo2',
-                                    sub: [
-                                        {id: doc.csub[1].sub[0].id, sfld: 'fee2'},
-                                        {id: doc.csub[1].sub[1].id, otherfld: 'fuu2'}
-                                    ]
+                                    sfld: 'foo2'
                                 }
                             ])
                         })
@@ -195,6 +257,20 @@ describe('Db Entity', () => {
                             ])
                         })
                 })
+
+                it('可配置列表字段', () => {
+                    entityConfig.subdoc = {listable: {
+                        csub: ["sfld"]
+                    }}
+                    return entity.listSubs(doc.id, 'csub')
+                        .then(data => {
+                            expect(data).eql([
+                                {id: doc.csub[0].id, sfld: 'foo1'},
+                                {id: doc.csub[1].id, sfld: 'foo2'}
+                            ])
+                        })
+                })
+
             })
 
             describe('findSubDocById', () => {
@@ -224,10 +300,24 @@ describe('Db Entity', () => {
                             expect(data).eql({
                                 Foo: doc.id,
                                 csub: doc.csub[1].id,
-                                sub: {
-                                    id: doc.csub[1].sub[1].id,
-                                    otherfld: 'fuu2'
-                                },
+                                id: doc.csub[1].sub[1].id,
+                                otherfld: 'fuu2',
+                                __v: doc.__v,
+                                updatedAt: doc.updatedAt
+                            })
+                        })
+                })
+
+                it('可配置读取字段', () => {
+                    entityConfig.subdoc = {projection: {
+                        csub: ["sfld"]
+                    }}
+                    return entity.findSubDocById(doc.csub[1].id, 'csub')
+                        .then(data => {
+                            expect(data).eql({
+                                Foo: doc.id,
+                                id: doc.csub[1].id,
+                                sfld: 'foo2',
                                 __v: doc.__v,
                                 updatedAt: doc.updatedAt
                             })

@@ -1,20 +1,13 @@
 const __ = require('underscore'),
-{each, findIndex, initial, last, isString, isUndefined} = __
+{each, map, pick, findIndex, initial, extend, last, isString, isUndefined} = __,
+createSubdocConfig = require('./CreateSubdocConfig')
 
 function __getUpdatedAtNameFromSchema(schema) {
     return schema.schema.$timestamps.updatedAt
 }
 
-function __getSubDocPathNames(schema, sub) {
-    const paths = schema.schema.paths[sub].schema.paths
-    const names = []
-    __.each(paths, (val, key) => {
-        if(key !== '_id') names.push(key)
-    })
-    return names
-}
-
-const __genWhere = (subDocId, paths) => {
+const __genWhere = (subDocId, path) => {
+    let paths = isString(path) ? path.split('.') : path
 	let whereClouse
 	for(i=0;i<paths.length;i++) {
 		if (i == 0) {
@@ -33,7 +26,8 @@ const __genWhere = (subDocId, paths) => {
 	return whereClouse
 }
 
-const __findSubDocFromParent = (doc, subDocId, paths) => {
+const __findSubDocFromParent = (doc, subDocId, path, filter) => {
+    let paths = isString(path) ? path.split('.') : path
 	let indexes = [paths.length]
 	__findIndex = (subDoc, from) => {
 		indexes[from] = findIndex(subDoc[paths[from]], el => {
@@ -49,9 +43,10 @@ const __findSubDocFromParent = (doc, subDocId, paths) => {
 	__findIndex(doc, 0)
 	
 	__getSub = (doc, lev, pathDoc) => {
-		sd = doc[paths[lev]][indexes[lev]]
+		let sd = doc[paths[lev]][indexes[lev]]
 		if (lev == paths.length - 1) {
-            pathDoc[paths[lev]] = sd.toJSON()
+            const jsonSubDoc = sd.toJSON()
+            extend(pathDoc, filter ? filter(jsonSubDoc) : jsonSubDoc)
             return sd
         } else {
             pathDoc[paths[lev]] = sd.id
@@ -59,14 +54,15 @@ const __findSubDocFromParent = (doc, subDocId, paths) => {
 		return __getSub(sd, lev + 1, pathDoc)
 	}
 
-    pathDoc = {}
-	subDoc = __getSub(doc, 0, pathDoc)
+    let pathDoc = {}
+	let subDoc = __getSub(doc, 0, pathDoc)
     return {pathDoc, subDoc}
 }
 
 class Entity {
     constructor(config) {
         this.__config = config
+        this.__subdoc = createSubdocConfig(config.subdoc)
     }
 
     // TODO: write test case
@@ -119,16 +115,18 @@ class Entity {
         return schema.findOne(wh)
     }
 
-    findSubDocById(subDocId, paths) {
+    findSubDocById(subDocId, path) {
+        const __filter = this.__subdoc.filter
+        let filter = (obj) => __filter(path, obj)
+        const paths = isString(path) ? path.split('.') : path
         const schema = this.__config.schema
         return this.findBySubDocId(subDocId, paths)
             .then(doc => {
                 if (!doc) return
-                pathDoc = __findSubDocFromParent(doc, subDocId, paths).pathDoc
+                let pathDoc = __findSubDocFromParent(doc, subDocId, paths, filter).pathDoc
                 let {id, __v, updatedAt} = doc.toJSON()
-                subDoc = {__v, updatedAt, ...pathDoc}
-                subDoc[schema.modelName] = id
-                return subDoc
+                pathDoc[schema.modelName] = id
+                return {__v, updatedAt, ...pathDoc}
             })
     }
 
@@ -263,7 +261,10 @@ class Entity {
             })
     }
 
-    listSubs(parentId, paths) {
+    listSubs(parentId, path) {
+        const __filter = this.__subdoc.filterFromList
+        let filter = (obj) => __filter(path, obj)
+        let paths = isString(path) ? path.split('.') : path
         const parentPath = initial(paths)
         const subFld = last(paths)
         let findParent = parentPath.length == 0 ? this.__config.schema.findById(parentId) : this.findBySubDocId(parentId, parentPath)
@@ -272,7 +273,7 @@ class Entity {
                 if (!doc) return []
                 let subDoc = parentPath.length == 0 ? doc : __findSubDocFromParent(doc, parentId, parentPath).subDoc
                 subDoc = subDoc.toJSON()
-                return subDoc[subFld] || []
+                return filter(subDoc[subFld] || [])
             })
     }
 }
@@ -289,7 +290,6 @@ const __create = (config, addIn) => {
         },
 
         findSubDocById(id, path) {
-            path = isString(path) ? path.split('.') : path
             return entity.findSubDocById(id, path)
         },
 
@@ -310,7 +310,6 @@ const __create = (config, addIn) => {
         },
 
         updateSubDoc(path, data) {
-            path = isString(path) ? path.split('.') : path
             return entity.updateSubDoc(path, data)
         },
 
@@ -319,12 +318,10 @@ const __create = (config, addIn) => {
         },
 
         removeSubDoc(id, path) {
-            path = isString(path) ? path.split('.') : path
             return entity.removeSubDoc(id, path)
         },
 
         listSubs(parentId, path) {
-            path = isString(path) ? path.split('.') : path
             return entity.listSubs(parentId, path)
         },
 
