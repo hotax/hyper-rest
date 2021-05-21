@@ -338,7 +338,7 @@ describe('Db Entity', () => {
         
                 it('create sub', () => {
                     let subDoc
-                    return entity.createSubDoc(doc.id, ['sub'], {sfld: 'fff'})
+                    return entity.createSubDoc(doc.id, ['csub'], {sfld: 'fff'})
                         .then(data => {
                             subDoc = data
                             expect(subDoc).eql({id: subDoc.id, sfld: 'fff'})
@@ -346,7 +346,7 @@ describe('Db Entity', () => {
                         })
                         .then(doc => {
                             doc = doc.toJSON()
-                            expect(doc.sub.length).eql(1)
+                            expect(doc.csub.length).eql(3)
                         })
                 })
 

@@ -19,7 +19,8 @@ module.exports = (config) => {
 
     let filters = {
         filter: filterWithOutConfig,
-        filterFromList: listFilterWithoutConfig
+        filterFromList: listFilterWithoutConfig,
+        filterNew: filter
     }
 
     if (!config) return filters

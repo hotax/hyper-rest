@@ -80,6 +80,7 @@ class Entity {
 
     createSubDoc(parentId, path, data) {
         const subPath = isString(path) ? path.split('.') : path
+        const filter = this.__subdoc.filterNew
         let row, subDoc
         const parentPath = initial(subPath)
         const subFld = last(subPath)
@@ -91,7 +92,7 @@ class Entity {
                 row = subDoc[subFld].push(data)
                 return doc.save()
                     .then(() => {
-                        doc = subDoc[subFld][row - 1].toJSON()
+                        doc = filter(subDoc[subFld][row - 1].toJSON())
                         return doc
                     })
             })
