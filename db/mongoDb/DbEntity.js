@@ -78,14 +78,15 @@ class Entity {
             })
     }
 
-    createSubDoc(parentId, subPath, data) {
+    createSubDoc(parentId, path, data) {
+        const subPath = isString(path) ? path.split('.') : path
         let row, subDoc
         const parentPath = initial(subPath)
         const subFld = last(subPath)
         let findParent = parentPath.length == 0 ? this.__config.schema.findById(parentId) : this.findBySubDocId(parentId, parentPath)
         return findParent    
             .then(doc => {
-                if (!doc) return
+                if (!doc) return Promise.reject()
                 subDoc = parentPath.length == 0 ? doc : __findSubDocFromParent(doc, parentId, parentPath).subDoc
                 row = subDoc[subFld].push(data)
                 return doc.save()
@@ -326,7 +327,6 @@ const __create = (config, addIn) => {
         },
 
         createSubDoc(parentId, path, data) {
-            path = isString(path) ? path.split('.') : path
             return entity.createSubDoc(parentId, path, data)
         },
 

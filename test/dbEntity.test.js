@@ -333,9 +333,7 @@ describe('Db Entity', () => {
         
                 it('parent doc is not found', () => {
                     return entity.createSubDoc(ID_NOT_EXIST, subPath, {sfld: 'fff'})
-                        .then(doc => {
-                            expect(doc).not.exist
-                        })
+                        .should.be.rejectedWith()
                 })
         
                 it('create sub', () => {
