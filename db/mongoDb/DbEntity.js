@@ -60,9 +60,10 @@ const __findSubDocFromParent = (doc, subDocId, path, filter) => {
 }
 
 class Entity {
-    constructor(config) {
+    constructor(config, addIn) {
         this.__config = config
         this.__subdoc = createSubdocConfig(config.subdoc)
+        extend(this, addIn)
     }
 
     // TODO: write test case
@@ -281,8 +282,9 @@ class Entity {
 }
 
 const __create = (config, addIn) => {
-    const entity = new Entity(config)
-    return extend(entity, addIn)
+    const entity = new Entity(config, addIn)
+    return entity
+    // return extend(entity, addIn)
 }
 
 module.exports = __create
