@@ -60,10 +60,9 @@ const __findSubDocFromParent = (doc, subDocId, path, filter) => {
 }
 
 class Entity {
-    constructor(config, addIn) {
+    constructor(config) {
         this.__config = config
         this.__subdoc = createSubdocConfig(config.subdoc)
-        extend(this, addIn)
     }
 
     // TODO: write test case
@@ -282,9 +281,60 @@ class Entity {
 }
 
 const __create = (config, addIn) => {
-    const entity = new Entity(config, addIn)
-    return entity
-    // return extend(entity, addIn)
+    const entity = new Entity(config)
+    const obj = {
+        create(data) {
+            return entity.create(data)
+        },
+
+        findById(id, projection) {
+            return entity.findById(id, projection)
+        },
+
+        findSubDocById(id, path) {
+            return entity.findSubDocById(id, path)
+        },
+
+        search(cond, text, sort) {
+            return entity.search(cond, text, sort)
+        },
+
+        ifMatch(id, version) {
+            return entity.ifMatch(id, version)
+        },
+
+        ifUnmodifiedSince(id, version) {
+            return entity.ifUnmodifiedSince(id, version)
+        },
+
+        update(data) {
+            return entity.update(data)
+        },
+
+        updateSubDoc(path, data) {
+            return entity.updateSubDoc(path, data)
+        },
+
+        remove(id) {
+            return entity.remove(id)
+        },
+
+        removeSubDoc(id, path) {
+            return entity.removeSubDoc(id, path)
+        },
+
+        listSubs(parentId, path) {
+            return entity.listSubs(parentId, path)
+        },
+
+        createSubDoc(parentId, path, data) {
+            return entity.createSubDoc(parentId, path, data)
+        },
+
+        ...addIn
+    }
+
+    return obj
 }
 
 module.exports = __create
