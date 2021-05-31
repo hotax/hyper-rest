@@ -5,11 +5,14 @@ const connectDb = require('@finelets/hyper-rest/db/mongoDb/ConnectMongoDb'),
 	jwt = require('@finelets/hyper-rest/jwt/ExpressJwt'),
 	cors = require('cors'),
 	path = require('path'),
+	https = require('https'),
+	http = require('http'),
 	restsBuilder = require('@finelets/hyper-rest/rests');
 
 const createServer = ({
 	appName,
 	baseDir,
+	cert,
 	messageCenterConfig,
 	jwtConfig,
 	flow
@@ -46,10 +49,17 @@ const createServer = ({
 		logger.info('connect mongodb success .......');
 		return messageCenter.start(messageCenterConfig)
 			.then(() => {
-				var server = appBuilder.run(function () {
+				const defaultPort = 19001   // Non-privileged user (not root) can't open a listening socket on ports below 1024
+				var port = process.env.PORT || defaultPort;
+				const server = cert ? https.createServer(cert, app) : http.createServer(app)
+				return server.listen(port, () => {
 					const addr = server.address();
 					logger.info('the server is running and listening at ' + addr.port);
-				});
+				})
+				/* var server = appBuilder.run(function () {
+					const addr = server.address();
+					logger.info('the server is running and listening at ' + addr.port);
+				}); */
 			})
 	})
 }
