@@ -7,12 +7,13 @@ const path = require('path'),
     cookieParser = require('cookie-parser'),
     bodyParser = require('body-parser'),
     xmlBodyParser = require('express-xml-bodyparser'),
+    busboy = require('connect-busboy'),
     express = require('express'),
     app = express();
 
 module.exports.begin = function (base) {
     var defaultViewsPath = path.join(base, 'client/views');
-    var __resourceRegistry;
+    var __jwt, __jwtConfig, __resourceRegistry;
     var viewEngine;
 
     function initappobject() {
@@ -20,6 +21,7 @@ module.exports.begin = function (base) {
         app.use(cookieParser(process.env.SESSION_SECRET));
         app.use(bodyParser.urlencoded({extended: true}));
         app.use(bodyParser.json());
+        app.use(busboy());
         app.use(xmlBodyParser({
             explicitArray: false,
             normalize: false,
@@ -48,8 +50,9 @@ module.exports.begin = function (base) {
             viewEngine = engine;
             return appBuilder;
         },
-        setSessionStore: function (store) {
-            store.attachTo(app);
+        setJwt: (jwt, config) => {
+            __jwt = jwt
+            __jwtConfig = config
             return appBuilder;
         },
         setResources: function (resourceRegistry, resources) {
@@ -71,11 +74,13 @@ module.exports.begin = function (base) {
         },
         end: function () {
             if (viewEngine) viewEngine.attachTo(app);
+            if(__jwt) __jwt(app, __jwtConfig);
             if (__resourceRegistry) __resourceRegistry.attachTo(app);
             return appBuilder;
         },
         run: function (callback) {
-            var port = process.env.PORT || 80;
+            const defaultPort = 19001   // Non-privileged user (not root) can't open a listening socket on ports below 1024
+            var port = process.env.PORT || defaultPort;
             return app.listen(port, callback);
         }
     };

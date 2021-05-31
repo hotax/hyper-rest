@@ -1,29 +1,33 @@
 /**
  * Created by clx on 2017/11/24.
  */
-const Promise = require("bluebird");
-var __urlBuilder;
-var __graph;
+const __ = require('underscore');
 
-module.exports = function (graph, urlBuilder) {
-    __graph = graph;
-    __urlBuilder = urlBuilder;
-    return {
-        getLinks: function (resourceId, context, req) {
-            return Promise.resolve(__graph[resourceId])
-                .then(function (trans) {
-                    var links = [];
-                    for (var key in trans) {
-                        var resource = trans[key];
-                        if (typeof resource === "object") {
-                            if (!resource.condition(context, req)) continue;
-                            resource = resource.id;
-                        }
-                        var href = __urlBuilder.getTransitionUrl(resourceId, resource, context, req);
-                        links.push({rel: key, href: href});
-                    }
-                    return links;
-                })
+function createTransGraph(graph, urlParser) {
+    function parseUrl(resourceId, destResource, context, req) {
+        let destId = destResource
+        if (__.isObject(destResource)) {
+            if (destResource.condition && !destResource.condition(context, req)) return null;
+            destId = destResource.id
         }
+        return urlParser(resourceId, destId, context, req)
+    }
+
+    function getLinks(resourceId, context, req) {
+        const transitions = graph[resourceId]
+        const links = []
+        __.each(transitions, (val, key) => {
+            const href = parseUrl(resourceId, val, context, req)
+            if (href) links.push({
+                rel: key,
+                href
+            })
+        })
+        return links
+    }
+    return {
+        getLinks
     }
 }
+
+module.exports = createTransGraph

@@ -8,8 +8,10 @@ module.exports = function (onOpen, connStr) {
     mongoose.Promise = promise;
     connStr = connStr || process.env.MONGODB;
     mongoose.connect(connStr, {
-        //useMongoClient: true,
-        /* other options */
+        useNewUrlParser: true,
+        useFindAndModify: false,
+        useCreateIndex: true,
+        useUnifiedTopology: true
     });
     mongoose.connection.on('open', onOpen);
 }
