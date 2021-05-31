@@ -375,6 +375,7 @@ function __create(urlResolve, cacheControlParser) {
             if (type === 'http') {
                 const method = restDesc.method.toLowerCase()
                 return router[method](urlPattern, function (req, res) {
+                    res.set('Content-Type', MEDIA_TYPE)
                     return restDesc.handler(req, res)
                 });
             }
