@@ -66,6 +66,6 @@ module.exports = function (uriString, options) {
     }
 
     function closeDB() {
-        return db.close();
+        return db.connection.close();
     }
 };
