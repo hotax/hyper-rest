@@ -10,7 +10,7 @@
     "test": "./node_modules/.bin/mocha -t 5000 --reporter spec --exit"
   },
   "dependencies": {
-    "amqplib": "^0.7.1",
+    "amqplib": "^0.8.0",
     "bluebird": "^3.7.2",
     "body-parser": "^1.19.0",
     "connect-busboy": "0.0.2",
