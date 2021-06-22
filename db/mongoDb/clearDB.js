@@ -1,5 +1,5 @@
 var url = require('url'),
-    {mapObject} = require('underscore'),
+    {each} = require('underscore'),
     mongoose = require('mongoose');
 
 var beforeEachRegistered = false;
@@ -17,8 +17,9 @@ module.exports = function (uriString, options) {
         uriString = 'mongodb://localhost/test';
     }
 
-    let db = mongoose.connection;
-
+    //let db = mongoose.connection;
+    let db;
+    
     if (!options.noClear && !beforeEachRegistered) {
         if ('function' == typeof beforeEach && beforeEach.length > 0) {
             // we're in a test suite that hopefully supports async operations
@@ -36,33 +37,45 @@ module.exports = function (uriString, options) {
     }
 
     return function () {
-        return clearDB();
+        return db ? clearCollections() : clearDB();
     };
 
     function clearDB() {
-        // if (db) return clearCollections(done);
         return mongoose.connect(dbURI, {
             useNewUrlParser: true,
             useFindAndModify: false,
             useCreateIndex: true,
+            autoIndex:true,
             useUnifiedTopology: true
             /* other options */
         })
         .then((conn) => {
-            db = conn
+          db = conn.connection
             return clearCollections()
         })
     }
 
+
     function clearCollections() {
-        colls = db.connection.collections
         let todo = []
-        mapObject(colls, (val, key) => {
-            todo.push(val.deleteMany({}, {
-                safe: true
-            })) 
-        })
-        return Promise.all(todo)
+        return db.db.collections()
+            .then(colls => {
+                each(colls, coll => {
+                    if (coll.collectionName.match(/^system\./)) return;
+                    if (options.skip instanceof Array && options.skip.indexOf(collection.collectionName) > -1) return;
+
+                    todo.push(coll.deleteMany({}, {
+                        safe: true
+                    }))
+                })
+                return Promise.all(todo) 
+            })
+            .then(data => {
+                return data
+            })
+            .catch(e => {
+                throw e
+            })
     }
 
     function closeDB() {
