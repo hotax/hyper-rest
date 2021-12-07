@@ -837,20 +837,6 @@ describe('hyper-rest', function () {
                         return Promise.resolve(objCreated)
                     })
 
-                    const expectedLinks = [{
-                            rel: 'rel1',
-                            href: '/href1'
-                        },
-                        {
-                            rel: 'rel2',
-                            href: '/href2'
-                        }
-                    ];
-                    currentResource.getLinks.callsFake((context, req) => {
-                        expect(context).eql(objCreated);
-                        expect(req.originalUrl).eql(url);
-                        return Promise.resolve(expectedLinks);
-                    })
                     var urlToCreatedObject = "/url/to/created/obj";
                     currentResource.getTransitionUrl.callsFake(function (target, context, req) {
                         expect(target).eql(targetResourceId);
@@ -866,7 +852,6 @@ describe('hyper-rest', function () {
                         .expect(201, {
                             href: urlToCreatedObject,
                             fuuuuuu: objCreated,
-                            links: expectedLinks
                         }, done);
                 });
 
