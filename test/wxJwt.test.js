@@ -84,13 +84,15 @@ describe("Wx JWT", () => {
 		})
 
 		describe('forAll - 过滤微信客户端每个请求', ()=>{
-			const user = {data: 'any user info'}
+			const user = {data: 'any user info'},
+			defaultBaseUrl = '/api'
 			let forAll
 
 			beforeEach(() => {
 				forAll = sinon.stub()
 				jwt(app, {authenticate: ()=>{}, forAll})
 			})
+
 			it("必须提供验证所有请求的方法 - forAll", () => {
 				expect(() => {
 					jwt(app, {authenticate: ()=>{}})
@@ -98,23 +100,23 @@ describe("Wx JWT", () => {
 			})
 
 			it("微信客户端请求头部authorization属性设置错误 - Unauthorized", () => {
-				return request.get('/api/foo')
+				return request.get(`${defaultBaseUrl}/foo`)
 					.expect(401)
 			})
 			
 			it("未能通过微信客户端请求头部authorization属性所设token解析出当前用户 - Forbidden", () => {
 				forAll.withArgs(token).resolves()
-				return request.get('/api/foo')
+				return request.get(`${defaultBaseUrl}/foo`)
 					.set('Authorization', `Bearer ${token}`)
 					.expect(403)
 			})
 
 			it("授权微信客户端请求", () => {
 				forAll.withArgs(token).resolves(user)
-				app.get('/api/foo', (req, res)=> {
+				app.get(`${defaultBaseUrl}/foo`, (req, res)=> {
 					return res.json(req.user)
 				})
-				return request.get('/api/foo')
+				return request.get(`${defaultBaseUrl}/foo`)
 					.set('Authorization', `Bearer ${token}`)
 					.expect(200, user)
 			})
