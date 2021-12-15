@@ -9,7 +9,7 @@ const defaultSignOptions = {
     algorithm: "HS256"
 }
 
-module.exports = (axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSessionMgr) => {
+module.exports = (userMgr, axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSessionMgr) => {
     const Appid = process.env.AppId,
     AppSecret = process.env.AppSecret,
     jwtSecret = process.env.JWT_SECRET,
@@ -21,16 +21,32 @@ module.exports = (axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSe
             let decode
             try {
                 decode = jwt.verify(token, jwtSecret, defaultSignOptions)
-                return sessionMgr.findByOpenId(decode.openid)
+                
             } catch (err) {
                 return sessionMgr.removeToken(token)
             }
+
+            const {user, openid} = decode
+            if (openid) {
+                return sessionMgr.findByOpenId(openid)
+                    .then(session => {
+                        if(!session) return
+                        let sessionUser = {openid, session_key: session.session_key}
+                        if(!user) return sessionUser
+                        return userMgr.getUser(user)
+                            .then(data=>{
+                                return {...sessionUser, user: data}
+                            })
+                    })
+            }
+            return userMgr.getUser(user)
         },
+
         authenticate: ({code, username, password}) => {
             let token
 
             if (!code) {
-                return sessionMgr.authenticate(username, password)
+                return userMgr.authenticate(username, password)
                     .then(user =>{
                         if(user){
                             token = jwt.sign({user: user.id}, jwtSecret, defaultSignOptions)
@@ -47,10 +63,10 @@ module.exports = (axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSe
                     if(errmsg) throw new Error(`Wechat login fail: ${errmsg}`)
                     
                     if(username) {
-                        return sessionMgr.authenticate(username, password)
+                        return userMgr.authenticate(username, password)
                         .then(user => {
                             if(user){
-                                token = jwt.sign({openid, id: user.id}, jwtSecret, defaultSignOptions)
+                                token = jwt.sign({openid, user: user.id}, jwtSecret, defaultSignOptions)
                                 return sessionMgr.create({token, openid, userId: user.id, session_key})
                                     .then(()=>{
                                         return {user, token}

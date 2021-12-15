@@ -169,20 +169,23 @@ describe("Wx JWT", () => {
 				process.env.AppId = appid
 				process.env.AppSecret = appSecret
 				process.env.JWT_SECRET = jwtSecret
+				userMgr = {
+					authenticate: sinon.stub(),
+					getUser: sinon.stub()
+				}
 				axios = {get: sinon.stub()}
 				jwt = {sign: sinon.stub(), verify: sinon.stub()}
 				sessionMgr = {
-					authenticate: sinon.stub(),
 					create: sinon.stub(), 
 					findByOpenId: sinon.stub(),
 					removeToken: sinon.stub()
 				}
-				wxJwtAuthenticate = require("../jwt/WxJwtAuthenticate")(axios, jwt, sessionMgr)
+				wxJwtAuthenticate = require("../jwt/WxJwtAuthenticate")(userMgr, axios, jwt, sessionMgr)
 			})
 			describe('authenticate - 微信身份验证', () => {
 				describe('无code - 非微信客户端登录', ()=>{
 					it("身份认证失败", ()=>{
-						sessionMgr.authenticate.withArgs(username, password).resolves()
+						userMgr.authenticate.withArgs(username, password).resolves()
 						return wxJwtAuthenticate.authenticate({username, password})
 							.then(data => {
 								expect(data).undefined
@@ -190,14 +193,14 @@ describe("Wx JWT", () => {
 					})
 	
 					it("身份认证出错", ()=>{
-						sessionMgr.authenticate.withArgs(username, password).rejects()
+						userMgr.authenticate.withArgs(username, password).rejects()
 						return wxJwtAuthenticate.authenticate({username, password})
 							.should.be.rejectedWith()
 					})
 
 					describe('身份认证成功， 签名产生令牌', ()=>{
 						beforeEach(() => {
-							sessionMgr.authenticate.withArgs(username, password).resolves(user)
+							userMgr.authenticate.withArgs(username, password).resolves(user)
 						})
 
 						it("数字签名出错", ()=>{
@@ -241,7 +244,7 @@ describe("Wx JWT", () => {
 
 						describe('包含userId、password身份信息， 需进一步身份认证', ()=>{
 							it("进一步身份认证失败", ()=>{
-								sessionMgr.authenticate.withArgs(username, password).resolves()
+								userMgr.authenticate.withArgs(username, password).resolves()
 								return wxJwtAuthenticate.authenticate({code, username, password})
 									.then(data => {
 										expect(data).undefined
@@ -249,14 +252,14 @@ describe("Wx JWT", () => {
 							})
 			
 							it("进一步身份认证出错", ()=>{
-								sessionMgr.authenticate.withArgs(username, password).rejects()
+								userMgr.authenticate.withArgs(username, password).rejects()
 								return wxJwtAuthenticate.authenticate({code, username, password})
 									.should.be.rejectedWith()
 							})
 
 							describe('进一步身份认证成功， 数字签名', ()=>{
 								beforeEach(() => {
-									sessionMgr.authenticate.withArgs(username, password).resolves(user)
+									userMgr.authenticate.withArgs(username, password).resolves(user)
 								})
 
 								it("数字签名出错", ()=>{
@@ -267,7 +270,7 @@ describe("Wx JWT", () => {
 		
 								describe('数字签名成功, 创建会话', ()=>{
 									beforeEach(() => {
-										jwt.sign.withArgs({openid, id}, jwtSecret, signOptions).returns(token)
+										jwt.sign.withArgs({openid, user: id}, jwtSecret, signOptions).returns(token)
 									})
 									
 									it("创建会话出错", ()=>{
@@ -330,16 +333,91 @@ describe("Wx JWT", () => {
 						})
 				})
 
-				it("获得用户信息", ()=>{
-					jwt.verify.withArgs(token, jwtSecret, signOptions).returns({openid})
-					sessionMgr.findByOpenId.withArgs(openid).resolves({openid, session_key})
-					return wxJwtAuthenticate.getUser(token)
-						.then(data => {
-							expect(data).eql({openid, session_key})
-						})
+				describe('token解析后仅包含user - 请求来自于非微信客户端', ()=>{
+					beforeEach(() => {
+						jwt.verify.withArgs(token, jwtSecret, signOptions).returns({user: id})
+					})
+
+					it("获得用户信息出错", ()=>{
+						userMgr.getUser.withArgs(id).rejects()
+						return wxJwtAuthenticate.getUser(token)
+							.should.be.rejectedWith()
+					})
+
+					it("未查找到用户", ()=>{
+						userMgr.getUser.withArgs(id).resolves()
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).undefined
+							})
+					})
+
+					it("获得业务用户信息", ()=>{
+						userMgr.getUser.withArgs(id).resolves(user)
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).eql(user)
+							})
+					})
+				}
+				)
+				describe('token解析后仅包含openid - 请求来自于微信客户端且未同业务用户关连', ()=>{
+					beforeEach(() => {
+						jwt.verify.withArgs(token, jwtSecret, signOptions).returns({openid})
+					})
+
+					it("访问会话出错", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).rejects()
+						return wxJwtAuthenticate.getUser(token)
+							.should.be.rejectedWith()
+					})
+
+					it("未找到会话", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).resolves()
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).undefined
+							})
+					})
+
+					it("获得会话", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).resolves({openid, session_key, data: 'any data in session record'})
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).eql({openid, session_key})
+							})
+					})
+				})
+
+				describe('token解析后包含openid和user - 请求来自于微信客户端已同业务用户关连', ()=>{
+					beforeEach(() => {
+						jwt.verify.withArgs(token, jwtSecret, signOptions).returns({openid, user: id})
+					})
+
+					it("访问会话出错", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).rejects()
+						return wxJwtAuthenticate.getUser(token)
+							.should.be.rejectedWith()
+					})
+
+					it("未找到会话", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).resolves()
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).undefined
+							})
+					})
+
+					it("获得会话", ()=>{
+						sessionMgr.findByOpenId.withArgs(openid).resolves({openid, session_key, data: 'any data in session record'})
+						userMgr.getUser.withArgs(id).resolves(user)
+						return wxJwtAuthenticate.getUser(token)
+							.then(data => {
+								expect(data).eql({openid, session_key, user})
+							})
+					})
 				})
 			})
-
 		})
 	})
 
