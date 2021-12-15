@@ -25,8 +25,9 @@ describe("Wx JWT", () => {
 
 		describe('authenticate - 微信登录服务', () => {
 			const code = '1223456', 
-			userId = 'foo',
+			username = 'foo',
 			password = 'password'
+			objIncludeToken = {data: 'any data authenticate returns'}
 			let authenticate
 
 			beforeEach(() => {
@@ -52,34 +53,34 @@ describe("Wx JWT", () => {
 			})
 
 			it("正确身份验证", () => {
-				authenticate.withArgs({code, userId, password}).resolves(token)
+				authenticate.withArgs({code, username, password}).resolves(objIncludeToken)
 				return request.post('/auth/login')
-					.send({code, userId, password})
-					.expect(200, {token})
+					.send({code, username, password})
+					.expect(200, objIncludeToken)
 					
 			})
 
 			it("身份验证失败", () => {
-				authenticate.withArgs({code, userId, password}).resolves()
+				authenticate.withArgs({code, username, password}).resolves()
 				return request.post('/auth/login')
-					.send({code, userId, password})
+					.send({code, username, password})
 					.expect(401)
 			})
 
 			it("微信身份验证出错", () => {
-				authenticate.withArgs({code, userId, password}).rejects()
+				authenticate.withArgs({code, username, password}).rejects()
 				return request.post('/auth/login')
-					.send({code, userId, password})
+					.send({code, username, password})
 					.expect(500)
 			})
 
 			it("可以配置身份验证Url", () => {
 				loginUrl = '/foo'
-				authenticate.withArgs({code, userId, password}).resolves(token)
+				authenticate.withArgs({code, username, password}).resolves(objIncludeToken)
 				jwt(app, {authenticate, forAll:()=>{}, loginUrl})
 				return request.post(loginUrl)
-					.send({code, userId, password})
-					.expect(200, {token})
+					.send({code, username, password})
+					.expect(200, objIncludeToken)
 			})
 		})
 
@@ -140,6 +141,10 @@ describe("Wx JWT", () => {
 			appid = "appid",
 			appSecret = "secret",
 			openid = "openid",
+			username = 'foo userid',
+			password = 'foo password',
+			id = 'user db id',
+			user = {id, data: 'any user info'}
 			session_key = "session_key",
 			jwtSecret = "JWT_SECRET",
 			signOptions = {
@@ -154,7 +159,7 @@ describe("Wx JWT", () => {
 		it('未正确设置环境变量', () => {
 			expect(() => {
 				require('../jwt/WxJwtAuthenticate')()
-			}).to.Throw()
+			}).to.Throw('To use WxJwtAuthenticate, you must set env AppSecret, JWT_SECRET, SessionExpiresIn correctly')
 		})
 
 		describe('正确配置环境变量', () => {
@@ -166,29 +171,151 @@ describe("Wx JWT", () => {
 				process.env.JWT_SECRET = jwtSecret
 				axios = {get: sinon.stub()}
 				jwt = {sign: sinon.stub(), verify: sinon.stub()}
-				sessionMgr = {create: sinon.stub(), findByOpenId: sinon.stub(), removeToken: sinon.stub()}
+				sessionMgr = {
+					authenticate: sinon.stub(),
+					create: sinon.stub(), 
+					findByOpenId: sinon.stub(),
+					removeToken: sinon.stub()
+				}
 				wxJwtAuthenticate = require("../jwt/WxJwtAuthenticate")(axios, jwt, sessionMgr)
 			})
 			describe('authenticate - 微信身份验证', () => {
-				it("无code， 微信登录失败", ()=>{
-					return wxJwtAuthenticate.authenticate()
-						.then(data => {
-							expect(data).undefined
-						})
-				})
+				describe('无code - 非微信客户端登录', ()=>{
+					it("身份认证失败", ()=>{
+						sessionMgr.authenticate.withArgs(username, password).resolves()
+						return wxJwtAuthenticate.authenticate({username, password})
+							.then(data => {
+								expect(data).undefined
+							})
+					})
 	
-				it("微信登录", ()=>{
-					expectedUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`
-					wxLoginInfo = {data: {openid, session_key}}
-		
-					axios.get.withArgs(expectedUrl).resolves(wxLoginInfo)
-					jwt.sign.withArgs({openid}, jwtSecret, signOptions).returns(token)
-					sessionMgr.create.withArgs({openid, session_key}).resolves()
-		
-					return wxJwtAuthenticate.authenticate(code)
-						.then(data => {
-							expect(data).eql({token})
+					it("身份认证出错", ()=>{
+						sessionMgr.authenticate.withArgs(username, password).rejects()
+						return wxJwtAuthenticate.authenticate({username, password})
+							.should.be.rejectedWith()
+					})
+
+					describe('身份认证成功， 签名产生令牌', ()=>{
+						beforeEach(() => {
+							sessionMgr.authenticate.withArgs(username, password).resolves(user)
 						})
+
+						it("数字签名出错", ()=>{
+							jwt.sign.withArgs({user: id}, jwtSecret, signOptions).throws()
+							return wxJwtAuthenticate.authenticate({username, password})
+								.should.be.rejectedWith()
+						})
+
+						it('数字签名成功', ()=>{
+							jwt.sign.withArgs({user: id}, jwtSecret, signOptions).returns(token)
+							return wxJwtAuthenticate.authenticate({username, password})
+								.then(data => {
+									expect(data).eql({user, token})
+								})
+						})
+					})
+				})
+				
+				describe('微信客户端登录', ()=>{
+					const expectedUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${appid}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`
+
+					it("微信登录出错", ()=>{						
+						axios.get.withArgs(expectedUrl).rejects()
+			
+						return wxJwtAuthenticate.authenticate({code})
+							.should.be.rejectedWith()
+					})
+
+					it('微信登录失败', ()=>{
+						const errmsg = "invalid code, rid: 61b9a5d9-7e777985-2572830c"
+						axios.get.withArgs(expectedUrl).resolves({data:{errmsg}})
+			
+						return wxJwtAuthenticate.authenticate({code})
+							.should.be.rejectedWith(`Wechat login fail: ${errmsg}`)
+					})
+
+					describe('微信登录成功', ()=>{
+						beforeEach(() => {
+							axios.get.withArgs(expectedUrl).resolves({data:{openid, session_key}})
+						})
+
+						describe('包含userId、password身份信息， 需进一步身份认证', ()=>{
+							it("进一步身份认证失败", ()=>{
+								sessionMgr.authenticate.withArgs(username, password).resolves()
+								return wxJwtAuthenticate.authenticate({code, username, password})
+									.then(data => {
+										expect(data).undefined
+									})
+							})
+			
+							it("进一步身份认证出错", ()=>{
+								sessionMgr.authenticate.withArgs(username, password).rejects()
+								return wxJwtAuthenticate.authenticate({code, username, password})
+									.should.be.rejectedWith()
+							})
+
+							describe('进一步身份认证成功， 数字签名', ()=>{
+								beforeEach(() => {
+									sessionMgr.authenticate.withArgs(username, password).resolves(user)
+								})
+
+								it("数字签名出错", ()=>{
+									jwt.sign.withArgs({openid, id}, jwtSecret, signOptions).throws()
+									return wxJwtAuthenticate.authenticate({code, username, password})
+										.should.be.rejectedWith()
+								})
+		
+								describe('数字签名成功, 创建会话', ()=>{
+									beforeEach(() => {
+										jwt.sign.withArgs({openid, id}, jwtSecret, signOptions).returns(token)
+									})
+									
+									it("创建会话出错", ()=>{
+										sessionMgr.create.withArgs({token, openid, session_key, id}).throws()
+										return wxJwtAuthenticate.authenticate({code, username, password})
+											.should.be.rejectedWith()
+									})
+
+									it("创建会话成功", ()=>{
+										sessionMgr.create.withArgs({token, openid, session_key, userId: id}).resolves()
+										return wxJwtAuthenticate.authenticate({code, username, password})
+											.then(data => {
+												expect(data).eql({user, token})
+											})
+									})
+								})
+							})
+		
+						})
+
+						describe('无userId、password身份信息， 数字签名', ()=>{
+							it("数字签名出错", ()=>{
+								jwt.sign.withArgs({openid}, jwtSecret, signOptions).throws()
+								return wxJwtAuthenticate.authenticate({code})
+									.should.be.rejectedWith()
+							})
+	
+							describe('数字签名成功, 创建会话', ()=>{
+								beforeEach(() => {
+									jwt.sign.withArgs({openid}, jwtSecret, signOptions).returns(token)
+								})
+								
+								it("创建会话出错", ()=>{
+									sessionMgr.create.withArgs({token, openid, session_key}).throws()
+									return wxJwtAuthenticate.authenticate({code})
+										.should.be.rejectedWith()
+								})
+
+								it("创建会话成功", ()=>{
+									sessionMgr.create.withArgs({token, openid, session_key}).resolves()
+									return wxJwtAuthenticate.authenticate({code})
+										.then(data => {
+											expect(data).eql({token})
+										})
+								})
+							})
+						})
+					})
 				})
 			})
 	

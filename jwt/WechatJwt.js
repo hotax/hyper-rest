@@ -30,14 +30,14 @@ const expressJwt = (app, config) => {
 
     app.post(loginUrl || defaultLoginUrl, (req, res) => {
         const {
-            code, userId, password
+            code, username, password
         } = req.body
-        if (!code && !userId) return res.status(403).end()
+        if (!code && !username) return res.status(403).end()
 
-        return authenticate({code, userId, password})
-            .then(token => {
-                if (!token) return res.status(401).end()
-                return res.json({token})
+        return authenticate({code, username, password})
+            .then(data => {
+                if (!data) return res.status(401).end()
+                return res.json(data)
             })
             .catch(e => {
                 return res.status(500).end()

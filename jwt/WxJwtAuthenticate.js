@@ -15,7 +15,7 @@ module.exports = (axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSe
     jwtSecret = process.env.JWT_SECRET,
     expiresIn = process.env.SessionExpiresIn
     if(!Appid || !AppSecret || !jwtSecret) 
-        throw 'must set env AppSecret, JWT_SECRET, SessionExpiresIn correctly'
+        throw 'To use WxJwtAuthenticate, you must set env AppSecret, JWT_SECRET, SessionExpiresIn correctly'
     return {
         getUser: (token)=>{
             let decode
@@ -26,19 +26,41 @@ module.exports = (axios = defaultAxios, jwt = defaultJwt, sessionMgr = defaultSe
                 return sessionMgr.removeToken(token)
             }
         },
-        authenticate: (code) => {
+        authenticate: ({code, username, password}) => {
+            let token
+
             if (!code) {
-                logger.error("code is undefined when wechat login")
-                return Promise.resolve()
+                return sessionMgr.authenticate(username, password)
+                    .then(user =>{
+                        if(user){
+                            token = jwt.sign({user: user.id}, jwtSecret, defaultSignOptions)
+                            return {user, token}
+                        }
+                        return
+                    })
             }
+
             let url = `https://api.weixin.qq.com/sns/jscode2session?appid=${Appid}&secret=${AppSecret}&js_code=${code}&grant_type=authorization_code`
-            let wxInfo, token
             return axios.get(url)
                 .then(res => {
-                    wxInfo = res.data
-                    logger.debug("login to wx by code: " + JSON.stringify(wxInfo, null, 2))
-                    token = jwt.sign({openid:wxInfo.openid}, jwtSecret, defaultSignOptions)
-                    return sessionMgr.create({...wxInfo})
+                    const {openid, session_key, errmsg} = res.data
+                    if(errmsg) throw new Error(`Wechat login fail: ${errmsg}`)
+                    
+                    if(username) {
+                        return sessionMgr.authenticate(username, password)
+                        .then(user => {
+                            if(user){
+                                token = jwt.sign({openid, id: user.id}, jwtSecret, defaultSignOptions)
+                                return sessionMgr.create({token, openid, userId: user.id, session_key})
+                                    .then(()=>{
+                                        return {user, token}
+                                    })
+                            }
+                            return
+                        })
+                    }
+                    token = jwt.sign({openid}, jwtSecret, defaultSignOptions)
+                    return sessionMgr.create({token, openid, session_key})
                         .then(()=>{
                             return {token}
                         })
