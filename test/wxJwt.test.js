@@ -24,7 +24,9 @@ describe("Wx JWT", () => {
 		})
 
 		describe('authenticate - 微信登录服务', () => {
-			const code = '1223456'
+			const code = '1223456', 
+			userId = 'foo',
+			password = 'password'
 			let authenticate
 
 			beforeEach(() => {
@@ -38,34 +40,45 @@ describe("Wx JWT", () => {
 				}).to.Throw()
 			})
 
-			it("正确身份验证", () => {
-				authenticate.withArgs(code).resolves({token})
+
+			it("登录请求未提供code或userId和password", () => {
 				return request.post('/auth/login')
-					.send({code})
+					.send({})
+					.expect(403)
+					.then(res => {
+						expect(authenticate.callCount).eql(0)
+					})
+					
+			})
+
+			it("正确身份验证", () => {
+				authenticate.withArgs({code, userId, password}).resolves(token)
+				return request.post('/auth/login')
+					.send({code, userId, password})
 					.expect(200, {token})
 					
 			})
 
-			it("微信身份验证失败", () => {
-				authenticate.withArgs(code).resolves()
+			it("身份验证失败", () => {
+				authenticate.withArgs({code, userId, password}).resolves()
 				return request.post('/auth/login')
-					.send({code})
-					.expect(403)
+					.send({code, userId, password})
+					.expect(401)
 			})
 
 			it("微信身份验证出错", () => {
-				authenticate.withArgs(code).rejects()
+				authenticate.withArgs({code, userId, password}).rejects()
 				return request.post('/auth/login')
-					.send({code})
+					.send({code, userId, password})
 					.expect(500)
 			})
 
 			it("可以配置身份验证Url", () => {
 				loginUrl = '/foo'
-				authenticate.withArgs(code).resolves({token})
+				authenticate.withArgs({code, userId, password}).resolves(token)
 				jwt(app, {authenticate, forAll:()=>{}, loginUrl})
 				return request.post(loginUrl)
-					.send({code})
+					.send({code, userId, password})
 					.expect(200, {token})
 			})
 		})

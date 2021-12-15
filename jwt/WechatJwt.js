@@ -1,9 +1,11 @@
-const defaultLoginUrl = '/auth/login'
-const defaultBaseUrl = '/api'
+const defaultLoginUrl = '/auth/login',
+defaultBaseUrl = '/api'
 
 const expressJwt = (app, config) => {
     const {authenticate, forAll, baseUrl, loginUrl} = config
-    if (!authenticate || !forAll) throw 'either authenticate or forAll should be required for JWT' 
+    if (!authenticate || !forAll) {
+        throw 'either authenticate or forAll should be required for JWT' 
+    } 
     
     app.use(baseUrl || defaultBaseUrl, (req, res, next) => {
         if (req.headers.authorization) {
@@ -25,14 +27,17 @@ const expressJwt = (app, config) => {
 
         return res.status(401).end()
     })
+
     app.post(loginUrl || defaultLoginUrl, (req, res) => {
         const {
-            code
+            code, userId, password
         } = req.body
-        return authenticate(code)
-            .then(data => {
-                if (!data) return res.status(403).end()
-                return res.json(data)
+        if (!code && !userId) return res.status(403).end()
+
+        return authenticate({code, userId, password})
+            .then(token => {
+                if (!token) return res.status(401).end()
+                return res.json({token})
             })
             .catch(e => {
                 return res.status(500).end()
