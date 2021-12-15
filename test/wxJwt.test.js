@@ -428,7 +428,8 @@ describe("Wx JWT", () => {
 		const ID_NOT_EXIST = '5ce79b99da3537277c3f3b66'
 		const token = 'token',
 			openid = 'openid',
-			session_key = 'session_key'
+			session_key = 'session_key',
+			userId = '5ce79b99da3537277c3f3b77'
 
 		let schema, testTarget, id, __v
 	
@@ -439,7 +440,7 @@ describe("Wx JWT", () => {
 			return clearDB();
 		})
 	
-		describe('创建微信会话', () => {
+		describe('创建微信会话 - create', () => {
 			it('无token', () => {
 				return testTarget.create({openid, session_key})
 					.should.be.rejectedWith()
@@ -456,7 +457,7 @@ describe("Wx JWT", () => {
 			})
 
 			it('正确创建微信会话', () => {
-				return testTarget.create({token, openid, session_key})
+				return testTarget.create({token, openid, session_key, userId})
 					.then(doc => {
 						return schema.findById(doc.id)
 					})
@@ -465,27 +466,63 @@ describe("Wx JWT", () => {
 						expect(doc.token).eql(token)
 						expect(doc.session_key).eql(session_key)
 						expect(doc.openid).eql(openid)
+						expect(doc.userId).eql(userId)
 					})
 			})
 		})
 
-		describe('删除无效token', ()=>{
+
+		describe('已有会话', ()=>{
 			beforeEach(function () {
-				return dbSave(schema, {token, openid, session_key})
+				return dbSave(schema, {token, openid, session_key, userId})
 			})
 
-			it('指定token不在数据库中', ()=>{
-				return testTarget.removeToken('not exist')
-					.then((data)=>{
-						expect(data).undefined
+			it('openid已存在', ()=>{
+				const newToken = 'abcedd',
+				newSessionkey = 'new session key'
+				return testTarget.create({token: newToken, openid, session_key:newSessionkey})
+					.then(()=>{
+						return schema.findOne({openid})
+					})
+					.then(doc=>{
+						doc = doc.toJSON()
+						expect(doc.token).eql(newToken)
+						expect(doc.openid).eql(openid)
+						expect(doc.session_key).eql(newSessionkey)
+						expect(doc.userId).undefined
 					})
 			})
 
-			it('正确删除', ()=>{
-				return testTarget.removeToken(token)
-					.then((data)=>{
-						expect(data).undefined
-					})
+			describe('按openid查找会话', ()=>{
+				it('未找到会话', ()=>{
+					return testTarget.findByOpenId('not exist')
+						.then((data)=>{
+							expect(data).undefined
+						})
+				})
+
+				it('找到会话', ()=>{
+					return testTarget.findByOpenId(openid)
+						.then((data)=>{
+							expect(data).eql({openid, session_key, userId})
+						})
+				})
+			})
+
+			describe('删除无效token - removeToken', ()=>{
+				it('指定token不在数据库中', ()=>{
+					return testTarget.removeToken('not exist')
+						.then((data)=>{
+							expect(data).undefined
+						})
+				})
+	
+				it('正确删除', ()=>{
+					return testTarget.removeToken(token)
+						.then((data)=>{
+							expect(data).undefined
+						})
+				})
 			})
 		})
 	})

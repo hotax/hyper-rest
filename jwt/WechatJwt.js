@@ -1,7 +1,7 @@
 const defaultLoginUrl = '/auth/login',
 defaultBaseUrl = '/api'
 
-const expressJwt = (app, config) => {
+const createJwt = (app, config) => {
     const {authenticate, forAll, baseUrl, loginUrl} = config
     if (!authenticate || !forAll) {
         throw 'either authenticate or forAll should be required for JWT' 
@@ -45,4 +45,4 @@ const expressJwt = (app, config) => {
     })
 }
 
-module.exports = expressJwt
+module.exports = createJwt
