@@ -147,9 +147,10 @@ describe("Wx JWT", () => {
 			user = {id, data: 'any user info'}
 			session_key = "session_key",
 			jwtSecret = "JWT_SECRET",
+			expiresIn = "2h",
 			signOptions = {
 				issuer: 'finelets',
-				expiresIn: "12h",
+				expiresIn,
 				algorithm: "HS256"
 			},
 			token = "token"
@@ -169,6 +170,7 @@ describe("Wx JWT", () => {
 				process.env.AppId = appid
 				process.env.AppSecret = appSecret
 				process.env.JWT_SECRET = jwtSecret
+				process.env.SessionExpiresIn = expiresIn
 				userMgr = {
 					authenticate: sinon.stub(),
 					getUser: sinon.stub()
@@ -322,11 +324,11 @@ describe("Wx JWT", () => {
 				})
 			})
 	
-			describe('getUser - 解析token获取用户信息', () => {
+			describe('forAll - 解析token获取用户信息', () => {
 				it("token无效", ()=>{
 					jwt.verify.withArgs(token, jwtSecret, signOptions).throws()
 					sessionMgr.removeToken.withArgs(token).resolves()
-					return wxJwtAuthenticate.getUser(token)
+					return wxJwtAuthenticate.forAll(token)
 						.then(data => {
 							expect(data).undefined
 							expect(sessionMgr.removeToken.callCount).eql(1)
@@ -340,13 +342,13 @@ describe("Wx JWT", () => {
 
 					it("获得用户信息出错", ()=>{
 						userMgr.getUser.withArgs(id).rejects()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.should.be.rejectedWith()
 					})
 
 					it("未查找到用户", ()=>{
 						userMgr.getUser.withArgs(id).resolves()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).undefined
 							})
@@ -354,7 +356,7 @@ describe("Wx JWT", () => {
 
 					it("获得业务用户信息", ()=>{
 						userMgr.getUser.withArgs(id).resolves(user)
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).eql(user)
 							})
@@ -368,13 +370,13 @@ describe("Wx JWT", () => {
 
 					it("访问会话出错", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).rejects()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.should.be.rejectedWith()
 					})
 
 					it("未找到会话", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).resolves()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).undefined
 							})
@@ -382,7 +384,7 @@ describe("Wx JWT", () => {
 
 					it("获得会话", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).resolves({openid, session_key, data: 'any data in session record'})
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).eql({openid, session_key})
 							})
@@ -396,13 +398,13 @@ describe("Wx JWT", () => {
 
 					it("访问会话出错", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).rejects()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.should.be.rejectedWith()
 					})
 
 					it("未找到会话", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).resolves()
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).undefined
 							})
@@ -411,7 +413,7 @@ describe("Wx JWT", () => {
 					it("获得会话", ()=>{
 						sessionMgr.findByOpenId.withArgs(openid).resolves({openid, session_key, data: 'any data in session record'})
 						userMgr.getUser.withArgs(id).resolves(user)
-						return wxJwtAuthenticate.getUser(token)
+						return wxJwtAuthenticate.forAll(token)
 							.then(data => {
 								expect(data).eql({openid, session_key, user})
 							})

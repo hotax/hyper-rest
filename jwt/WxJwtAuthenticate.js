@@ -14,10 +14,11 @@ module.exports = (userMgr, axios = defaultAxios, jwt = defaultJwt, sessionMgr = 
     AppSecret = process.env.AppSecret,
     jwtSecret = process.env.JWT_SECRET,
     expiresIn = process.env.SessionExpiresIn
+    defaultSignOptions.expiresIn = expiresIn || defaultSignOptions.expiresIn
     if(!Appid || !AppSecret || !jwtSecret) 
         throw 'To use WxJwtAuthenticate, you must set env AppSecret, JWT_SECRET, SessionExpiresIn correctly'
     return {
-        getUser: (token)=>{
+        forAll: (token)=>{
             let decode
             try {
                 decode = jwt.verify(token, jwtSecret, defaultSignOptions)
