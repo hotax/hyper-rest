@@ -2,7 +2,8 @@ const connectDb = require('../db/mongoDb/ConnectMongoDb'),
 	appBuilderFactory = require('./AppBuilder'),
 	logger = require('../app/Logger'),
 	messageCenter = require('../mq'),
-	jwt = require('../jwt/ExpressJwt'),
+	jwt = require('../jwt').WechatJwt,
+	defaultJwtConfig = require('../jwt').WxJwtAuthenticate(),
 	cors = require('cors'),
 	path = require('path'),
 	https = require('https'),
@@ -26,8 +27,8 @@ const createServer = ({
 
 	var app = appBuilder.getApp();
 
-	let mode = process.env.RUNNING_MODE
-	logger.info('Server is running at ' + mode + ' mode')
+	let mode = process.env.RUNNING_MODE || "server"
+	logger.info(`Server is running at ${mode} mode`)
 	if (mode === 'rest') {
 		appBuilder
 			.setWebRoot(webRoot, clientDir)
@@ -39,7 +40,7 @@ const createServer = ({
 		appBuilder
 			.setWebRoot(webRoot, clientDir)
 			.setFavicon(favicon)
-			.setJwt(jwt, jwtConfig)
+			.setJwt(jwt, jwtConfig || defaultJwtConfig)
 			.setResources(...rests)
 			.end();
 	}
