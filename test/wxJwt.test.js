@@ -452,7 +452,6 @@ describe("Wx JWT", () => {
 
 	describe('WxSessions', () => {
 		let err;
-		const ID_NOT_EXIST = '5ce79b99da3537277c3f3b66'
 		const token = 'token',
 			openid = 'openid',
 			session_key = 'session_key',
