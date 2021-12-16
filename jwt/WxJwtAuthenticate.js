@@ -70,7 +70,10 @@ module.exports = (userMgr, axios = defaultAxios, jwt = defaultJwt, sessionMgr = 
                                 token = jwt.sign({openid, user: user.id}, jwtSecret, defaultSignOptions)
                                 return sessionMgr.create({token, openid, userId: user.id, session_key})
                                     .then(()=>{
-                                        return {user, token}
+                                        return userMgr.createWechatUser({id: user.id, openid})
+                                    })
+                                    .then((data)=>{
+                                        return {user: data, token}
                                     })
                             }
                             return
@@ -79,7 +82,10 @@ module.exports = (userMgr, axios = defaultAxios, jwt = defaultJwt, sessionMgr = 
                     token = jwt.sign({openid}, jwtSecret, defaultSignOptions)
                     return sessionMgr.create({token, openid, session_key})
                         .then(()=>{
-                            return {token}
+                            return userMgr.createWechatUser({openid})
+                        })
+                        .then((user)=>{
+                            return {user, token}
                         })
                 })
         }

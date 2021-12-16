@@ -173,7 +173,8 @@ describe("Wx JWT", () => {
 				process.env.SessionExpiresIn = expiresIn
 				userMgr = {
 					authenticate: sinon.stub(),
-					getUser: sinon.stub()
+					getUser: sinon.stub(),
+					createWechatUser: sinon.stub()
 				}
 				axios = {get: sinon.stub()}
 				jwt = {sign: sinon.stub(), verify: sinon.stub()}
@@ -265,7 +266,7 @@ describe("Wx JWT", () => {
 								})
 
 								it("数字签名出错", ()=>{
-									jwt.sign.withArgs({openid, id}, jwtSecret, signOptions).throws()
+									jwt.sign.withArgs({openid, user: id}, jwtSecret, signOptions).throws()
 									return wxJwtAuthenticate.authenticate({code, username, password})
 										.should.be.rejectedWith()
 								})
@@ -276,17 +277,29 @@ describe("Wx JWT", () => {
 									})
 									
 									it("创建会话出错", ()=>{
-										sessionMgr.create.withArgs({token, openid, session_key, id}).throws()
+										sessionMgr.create.withArgs({token, openid, session_key, userId: id}).rejects()
 										return wxJwtAuthenticate.authenticate({code, username, password})
 											.should.be.rejectedWith()
 									})
 
-									it("创建会话成功", ()=>{
-										sessionMgr.create.withArgs({token, openid, session_key, userId: id}).resolves()
-										return wxJwtAuthenticate.authenticate({code, username, password})
-											.then(data => {
-												expect(data).eql({user, token})
-											})
+									describe("创建会话成功，建立openid同业务用户的关联关系", ()=>{
+										beforeEach(() => {
+											sessionMgr.create.withArgs({token, openid, session_key, userId: id}).resolves()
+										})
+										
+										it("建立openid同业务用户的关联关系出错", ()=>{
+											userMgr.createWechatUser.withArgs({openid, id}).rejects()
+											return wxJwtAuthenticate.authenticate({code, username, password})
+												.should.be.rejectedWith()
+										})
+
+										it("建立openid同业务用户的关联关系成功", ()=>{
+											userMgr.createWechatUser.withArgs({openid, id}).resolves(user)
+											return wxJwtAuthenticate.authenticate({code, username, password})
+												.then(data => {
+													expect(data).eql({user, token})
+												})
+										})
 									})
 								})
 							})
@@ -311,13 +324,27 @@ describe("Wx JWT", () => {
 										.should.be.rejectedWith()
 								})
 
-								it("创建会话成功", ()=>{
-									sessionMgr.create.withArgs({token, openid, session_key}).resolves()
-									return wxJwtAuthenticate.authenticate({code})
-										.then(data => {
-											expect(data).eql({token})
-										})
+								describe("创建会话成功，建立openid同业务用户的关联关系", ()=>{
+									beforeEach(() => {
+										sessionMgr.create.withArgs({token, openid, session_key}).resolves()
+									})
+
+									it("建立微信用户出错", ()=>{
+										userMgr.createWechatUser.withArgs({openid}).rejects()
+										return wxJwtAuthenticate.authenticate({code})
+											.should.be.rejectedWith()
+									})
+
+									it("建立微信用户成功", ()=>{
+										userMgr.createWechatUser.withArgs({openid}).resolves(user)
+										return wxJwtAuthenticate.authenticate({code})
+											.then(data => {
+												expect(data).eql({user, token})
+											})
+									})
 								})
+
+								
 							})
 						})
 					})
