@@ -18,7 +18,7 @@ const createJwt = (app, config) => {
                     .then(user => {
                         if (user) {
                             req.user = user
-                            next()
+                            return next()
                         }
                         return res.status(403).end()
                     })
