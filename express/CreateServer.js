@@ -39,7 +39,7 @@ const createServer = ({
 		appBuilder
 			.setWebRoot(webRoot, clientDir)
 			.setFavicon(favicon)
-			.setJwt(jwt, jwtConfig)
+			.setJwt(jwt, {...jwtConfig, appName})
 			.setResources(...rests)
 			.end();
 	}

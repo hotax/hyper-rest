@@ -16,7 +16,8 @@ describe("Wx JWT", () => {
 	})
 
 	describe("WechatJwt", () => {
-		const token = 'token'
+		const token = 'token',
+		appName = 'app'
 		let jwt
 
 		beforeEach(() => {
@@ -26,7 +27,7 @@ describe("Wx JWT", () => {
 		describe('authenticate - 微信登录服务', () => {
 			const code = '1223456', 
 			username = 'foo',
-			password = 'password'
+			password = 'password',
 			objIncludeToken = {data: 'any data authenticate returns'}
 			let authenticate
 
@@ -74,14 +75,25 @@ describe("Wx JWT", () => {
 					.expect(500)
 			})
 
-			it("可以配置身份验证Url", () => {
-				loginUrl = '/foo'
-				authenticate.withArgs({code, username, password}).resolves(objIncludeToken)
-				jwt(app, {authenticate, forAll:()=>{}, loginUrl})
-				return request.post(loginUrl)
-					.send({code, username, password})
-					.expect(200, objIncludeToken)
+			describe('配置身份验证Url', ()=>{
+				it("使用appName+缺省的方式配置身份验证Url", () => {
+					authenticate.withArgs({code, username, password}).resolves(objIncludeToken)
+					jwt(app, {authenticate, forAll:()=>{}, appName})
+					return request.post(`/${appName}/auth/login`)
+						.send({code, username, password})
+						.expect(200, objIncludeToken)
+				})
+
+				it("使用loginUrl配置身份验证Url", () => {
+					loginUrl = '/foo'
+					authenticate.withArgs({code, username, password}).resolves(objIncludeToken)
+					jwt(app, {authenticate, forAll:()=>{}, loginUrl})
+					return request.post(loginUrl)
+						.send({code, username, password})
+						.expect(200, objIncludeToken)
+				})
 			})
+			
 		})
 
 		describe('forAll - 过滤微信客户端每个请求', ()=>{
@@ -122,16 +134,30 @@ describe("Wx JWT", () => {
 					.expect(200, user)
 			})
 
-			it("可以配置基本url", () => {
-				baseUrl = '/foo'
-				forAll.withArgs(token).resolves(user)
-				jwt(app, {authenticate: ()=>{}, forAll, baseUrl})
-				app.get(baseUrl, (req, res)=> {
-					return res.json(req.user)
+			describe('可以配置基本url', ()=>{
+				it("使用appName+缺省的方式配置基本Url", () => {
+					forAll.withArgs(token).resolves(user)
+					jwt(app, {authenticate: ()=>{}, forAll, appName})
+					let url = `/${appName}${defaultBaseUrl}/foo`
+					app.get(url, (req, res)=> {
+						return res.json(req.user)
+					})
+					return request.get(url)
+						.set('Authorization', `Bearer ${token}`)
+						.expect(200, user)
 				})
-				return request.get(baseUrl)
-					.set('Authorization', `Bearer ${token}`)
-					.expect(200, user)
+
+				it("使用baseUrl配置基本url", () => {
+					baseUrl = '/foo'
+					forAll.withArgs(token).resolves(user)
+					jwt(app, {authenticate: ()=>{}, forAll, baseUrl})
+					app.get(baseUrl, (req, res)=> {
+						return res.json(req.user)
+					})
+					return request.get(baseUrl)
+						.set('Authorization', `Bearer ${token}`)
+						.expect(200, user)
+				})
 			})
 		})
 	})

@@ -2,11 +2,14 @@ const defaultLoginUrl = '/auth/login',
 defaultBaseUrl = '/api'
 
 const createJwt = (app, config) => {
-    const {authenticate, forAll, baseUrl, loginUrl} = config
+    let {authenticate, forAll, appName, baseUrl, loginUrl} = config
     if (!authenticate || !forAll) {
         throw 'either authenticate or forAll should be required for JWT' 
     } 
     
+    if(!loginUrl && appName) loginUrl = `/${appName}${defaultLoginUrl}`
+    if(!baseUrl && appName) baseUrl = `/${appName}${defaultBaseUrl}`
+
     app.use(baseUrl || defaultBaseUrl, (req, res, next) => {
         if (req.headers.authorization) {
             let authStrs = req.headers.authorization.split('Bearer ')

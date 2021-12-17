@@ -22,6 +22,7 @@ describe('Cross', () => {
 		const user = {
 			id: userId
 		}
+		const appName = 'app'
 		const secret = 'any secret'
 		let defaultSignOptions
 		const token = 'dummytoken'
@@ -103,9 +104,33 @@ describe('Cross', () => {
 				}, done)
 		})
 
+		it('用appName配置loginUrl', (done) => {
+			authenticate.withArgs(username, password).resolves(user)
+			jsonwebtoken.sign.withArgs({
+				user: userId
+			}, secret, defaultSignOptions).returns(token)
+			jwt(app, {...jwtConfig, appName})
+			request.post(`/${appName}${defaultUriLogin}`)
+				.send({
+					username,
+					password
+				})
+				.expect(200, {
+					user,
+					token
+				}, done)
+		})
+
+
 		it('请求头部需要给出authorization信息', (done) => {
 			jwt(app, jwtConfig)
 			request.get('/api/foo')
+				.expect(401, done)
+		})
+
+		it('用appName配置baseUrl', (done) => {
+			jwt(app, {...jwtConfig, appName})
+			request.get(`/${appName}/api/foo`)
 				.expect(401, done)
 		})
 

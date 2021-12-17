@@ -29,6 +29,7 @@ const createServer = ({
 
 	let mode = process.env.RUNNING_MODE || "server"
 	logger.info(`Server is running at ${mode} mode`)
+
 	if (mode === 'rest') {
 		appBuilder
 			.setWebRoot(webRoot, clientDir)
@@ -40,7 +41,7 @@ const createServer = ({
 		appBuilder
 			.setWebRoot(webRoot, clientDir)
 			.setFavicon(favicon)
-			.setJwt(jwt, jwtConfig || defaultJwtConfig)
+			.setJwt(jwt, jwtConfig || {appName, ...defaultJwtConfig})
 			.setResources(...rests)
 			.end();
 	}
