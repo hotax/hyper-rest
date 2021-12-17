@@ -61,20 +61,14 @@ describe('权限管理', function () {
 			})
 
 			it('账号不一致，未获认证', () => {
-				return dbSave(Schema, user)
-					.then((doc) => {
-						return entity.authenticate('unknown', password)
-					})
+				return entity.authenticate('unknown', password)
 					.then((theUser) => {
 						expect(theUser).undefined
 					})
 			})
 
 			it('密码不一致，未获认证', () => {
-				return dbSave(Schema, user)
-					.then((doc) => {
-						return entity.authenticate(userId, 'wrong')
-					})
+				return entity.authenticate(userId, 'wrong')
 					.then((theUser) => {
 						expect(theUser).undefined
 					})

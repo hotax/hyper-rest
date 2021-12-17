@@ -17,11 +17,7 @@ const dbModel = createCollection({
     },
     indexes: [
         {
-            index: {name: 1},
-            options: {unique: true}
-        },
-        {
-            index: {userId: 1},
+            index: {userId: 1, openid: 1},
             options: {unique: true}
         }
     ]
