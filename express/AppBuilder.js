@@ -2,6 +2,7 @@
  * Created by clx on 2017/10/9.
  */
 const path = require('path'),
+    cors = require('cors'),
     morgan = require('morgan'),
     favicon = require('serve-favicon'),
     cookieParser = require('cookie-parser'),
@@ -17,6 +18,7 @@ module.exports.begin = function (base) {
     var viewEngine;
 
     function initappobject() {
+        app.use(cors());
         app.use(morgan('dev')); // used as logger
         app.use(cookieParser(process.env.SESSION_SECRET));
         app.use(bodyParser.urlencoded({extended: true}));
