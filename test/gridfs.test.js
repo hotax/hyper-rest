@@ -10,17 +10,6 @@ describe('GridFs', () => {
     let testFileName, gridFs, rs, bucketName
     let filesColl, chunksColl
 
-    /* beforeEach(function (done) {
-        bucketName = 'fs'
-        testFileName = path.join(__dirname, './testhelper.js')
-        gridFs = createGridFs()
-        rs = fs.createReadStream(testFileName)
-        return clearDB(() => {
-            filesColl = mongoose.connection.db.collection(`${bucketName}.files`)
-            chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
-            done()
-        })
-    }) */
     beforeEach(function () {
         bucketName = 'fs'
         testFileName = path.join(__dirname, './testhelper.js')
@@ -37,7 +26,7 @@ describe('GridFs', () => {
         it('仅指定文件名', () => {
             return gridFs.upload(rs, fileName)
                 .then(id => {
-                    id = mongoose.Types.ObjectId(id)
+                    id = new mongoose.Types.ObjectId(id)
                     const files = filesColl.find({
                         _id: id
                     })
@@ -67,7 +56,7 @@ describe('GridFs', () => {
                 .then(id => {
                     filesColl = mongoose.connection.db.collection(`${bucketName}.files`)
                     chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
-                    id = mongoose.Types.ObjectId(id)
+                    id = new mongoose.Types.ObjectId(id)
                     const files = filesColl.find({
                         _id: id
                     })

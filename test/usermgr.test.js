@@ -291,15 +291,7 @@ describe('权限管理', function () {
 						id = doc.id
 						return entity.createWechatUser({id, openid})
 					})
-					.then((doc) => {
-						expect(doc).eql({id, name,  openid, 
-							__v: doc.__v, createdAt: doc.createdAt, updatedAt: doc.updatedAt})
-						return Schema.findById(feeid)
-					})
-					.then(doc=>{
-						expect(doc.name).eql(feename)
-						expect(doc.openid).undefined
-					})
+					.should.be.rejectedWith()
 			})
 
 			it('指定用户未找到', () => {

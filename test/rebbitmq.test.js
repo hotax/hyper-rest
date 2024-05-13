@@ -1,6 +1,6 @@
 describe('RabbitMq', function () {
-    // const mqConnStr = 'amqp://qladapfm:CjtgA21O-1Ux-L108UCR70TcJ4GDpRVh@spider.rmq.cloudamqp.com/qladapfm';
-    const mqConnStr = 'amqp://guest:guest@localhost';
+    const mqConnStr = 'amqp://mnf:mnf3322@47.120.72.233:5672';
+    // const mqConnStr = 'amqp://guest:guest@localhost';
     // const mqConnStr = 'amqp://admin:admin@47.97.153.158';
     // const mqConnStr = 'amqp://jsm:jsm@192.168.5.166'
     let stubs, err;
