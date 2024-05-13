@@ -2,9 +2,10 @@
  * Created by clx on 2017/11/16.
  */
 const __ = require('underscore')
+const mongoose = require('mongoose')
 
 function isObjectID(val) {
-    return __.isObject(val) && val._bsontype && val._bsontype === 'ObjectID'
+    return __.isObject(val) && mongoose.Types.ObjectId.isValid(val)
 }
 
 const transform = {
