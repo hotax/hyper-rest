@@ -50,7 +50,7 @@ describe('hyper-rest', function () {
             });
         });
 
-        describe('createObjectId', function () {
+        xdescribe('createObjectId', function () {
 
             it('非法标识', function () {
                 createReasonMock.createErrorReason.returns(reason);

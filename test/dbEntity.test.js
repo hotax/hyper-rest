@@ -1,3 +1,5 @@
+const { default: mongoose } = require('mongoose')
+
 const toUtc = require('../utils/UtcDate').toUtc
 
 describe('Db Entity', () => {
@@ -225,7 +227,7 @@ describe('Db Entity', () => {
                 })
         
                 it('subdoc is not found', () => {
-                    return entity.listSubs(ID_NOT_EXIST, 'csub.subNotExist')
+                    return entity.listSubs(ID_NOT_EXIST, subPath)
                         .then(d => {
                             expect(d).eql([])
                         })
@@ -237,10 +239,12 @@ describe('Db Entity', () => {
                         .then(data => {
                             expect(data).eql([
                                 {
+                                    // _id: doc.csub[0].id,
                                     id: doc.csub[0].id,
                                     sfld: 'foo1'
                                 },
                                 {
+                                    // _id: doc.csub[1].id,
                                     id: doc.csub[1].id,
                                     sfld: 'foo2'
                                 }
@@ -531,10 +535,10 @@ describe('Db Entity', () => {
                 return entity.update({
                         id: doc.id,
                         __v: version,
-                        fld: 'fld'
+                        fld: 'fld1'
                     })
                     .then((doc) => {
-                        expect(doc.fld).eqls('fld')
+                        expect(doc.fld).eqls('fld1')
                         expect(doc.updatedAt > updatedAt).true
                     });
             });

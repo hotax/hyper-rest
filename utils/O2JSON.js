@@ -2,13 +2,13 @@ const _ = require('lodash'),
     mongoose = require('mongoose');
 
 const isObjectId = (obj) => {
-    return _.isObject(obj) && obj._bsontype == 'ObjectID'
+    return mongoose.Types.ObjectId.isValid(obj)
 }
 
 const obj = {
 
     createObjectId: (id) => {
-        return mongoose.Types.ObjectId(id);
+        return new mongoose.Types.ObjectId(id);
     },
     
     convertToJSON: (obj, keysToRemove = []) => {

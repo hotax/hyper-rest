@@ -53,7 +53,7 @@ describe('Utils', function () {
 		let anInstanceOfObjectID
 
 		beforeEach(function () {
-			anInstanceOfObjectID = mongoose.Types.ObjectId(strObjectId);
+			anInstanceOfObjectID = new mongoose.Types.ObjectId(strObjectId);
 			testTarget = require('../utils/O2JSON')
 		})
 

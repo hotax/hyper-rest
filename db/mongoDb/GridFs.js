@@ -26,19 +26,12 @@ const createGridFs = (config) => {
         },
         remove: (id) => {
             createBucket()
-            return new Promise((resolve, reject) => {
-                id = mongoose.Types.ObjectId(id)
-                bucket.delete(id, err => {
-                    if (err) {
-                        return reject(err)
-                    }
-                    return resolve()
-                })
-            })
+            const objId = new mongoose.Types.ObjectId(id)
+            return bucket.delete(objId)
         },
         openDownloadStream: (id) => {
             createBucket()
-            id = mongoose.Types.ObjectId(id)
+            id = new mongoose.Types.ObjectId(id)
             return bucket.openDownloadStream(id)
         }
     }
