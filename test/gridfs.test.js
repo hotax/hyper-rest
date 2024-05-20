@@ -11,12 +11,12 @@ describe('GridFs', () => {
     let filesColl, chunksColl
 
     beforeEach(function () {
-        bucketName = 'fs'
-        testFileName = path.join(__dirname, './testhelper.js')
-        gridFs = createGridFs()
-        rs = fs.createReadStream(testFileName)
         return clearDB()
             .then(() => {
+                bucketName = 'fs'
+                testFileName = path.join(__dirname, './data/clx.jpg')
+                gridFs = createGridFs()
+                rs = fs.createReadStream(testFileName)
                 filesColl = mongoose.connection.db.collection(`${bucketName}.files`)
                 chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
             })
