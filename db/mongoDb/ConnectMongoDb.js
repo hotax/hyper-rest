@@ -8,7 +8,7 @@ module.exports = async function (onOpen, connStr) {
     mongoose.Promise = promise;
     connStr = connStr || process.env.MONGODB;
     mongoose.connection.on('open', onOpen);
-    return await mongoose.connect(dbURI, {
+    return await mongoose.connect(connStr, {
         autoIndex:true
     })
 }
