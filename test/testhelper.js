@@ -14,7 +14,7 @@ var sinonStubPromise = require('sinon-stub-promise');
 sinonStubPromise(sinon);
 
 // global.dbURI = 'mongodb://localhost:27017/test';
-global.dbURI = 'mongodb+srv://clx:980425@clx.pzejytc.mongodb.net/testdb';
+global.dbURI = 'mongodb+srv://clx:980425@clx.pzejytc.mongodb.net/test';
 global.clearDB = require('../db/mongoDb/clearDB')(dbURI);
 global.expect = chai.expect;
 global.assert = chai.assert;

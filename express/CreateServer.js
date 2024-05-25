@@ -9,7 +9,7 @@ const connectDb = require('../db/mongoDb/ConnectMongoDb'),
 	http = require('http'),
 	restsBuilder = require('../rests');
 
-const createServer = ({
+const createServer = async ({
 	appName,
 	baseDir,
 	cert,
@@ -44,7 +44,7 @@ const createServer = ({
 			.end();
 	}
 
-	connectDb(function () {
+	await connectDb(function () {
 		logger.info('db: ' + process.env.MONGODB);
 		logger.info('connect mongodb success .......');
 		return messageCenter.start(messageCenterConfig)
@@ -56,10 +56,6 @@ const createServer = ({
 					const addr = server.address();
 					logger.info('the server is running and listening at ' + addr.port);
 				})
-				/* var server = appBuilder.run(function () {
-					const addr = server.address();
-					logger.info('the server is running and listening at ' + addr.port);
-				}); */
 			})
 	})
 }

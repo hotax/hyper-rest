@@ -63,7 +63,7 @@ const obj = {
 
     authenticate: (userName, password) => {
         if (userName === DEFAULT_ADMIN_NAME && password === DEFAULT_ADMIN_PWD) {
-            return schema.count({isAdmin: true})
+            return schema.countDocuments({isAdmin: true})
                 .then((countOfAdmin) => {
                     if (countOfAdmin === 0) return Promise.resolve(DEFAULT_ADMIN)
                     return Promise.resolve()

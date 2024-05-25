@@ -4,14 +4,11 @@
 const mongoose = require('mongoose'),
     promise = require('bluebird');
 
-module.exports = function (onOpen, connStr) {
+module.exports = async function (onOpen, connStr) {
     mongoose.Promise = promise;
     connStr = connStr || process.env.MONGODB;
-    mongoose.connect(connStr, {
-        useNewUrlParser: true,
-        useFindAndModify: false,
-        useCreateIndex: true,
-        useUnifiedTopology: true
-    });
     mongoose.connection.on('open', onOpen);
+    return await mongoose.connect(dbURI, {
+        autoIndex:true
+    })
 }

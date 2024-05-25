@@ -76,6 +76,9 @@ class Entity {
             .then(doc => {
 				return doc.toJSON()
             })
+            .catch(err => {
+                throw err
+            })
     }
 
     createSubDoc(parentId, path, data) {
@@ -245,8 +248,8 @@ class Entity {
                 _id: id
             })
             .then((data) => {
-                if (data.n === 0 && data.deletedCount === 0) return
-                return (data.deletedCount === 1 && data.ok === 1)
+                // if (data.n === 0 && data.deletedCount === 0) return
+                return (data.deletedCount === 1 && data.acknowledged)
             })
     }
 
@@ -255,11 +258,14 @@ class Entity {
             .then(parent => {
                 if (!parent) return
                 const doc = __findSubDocFromParent(parent, subDocId, paths)
-                doc.subDoc.remove()
+                doc.subDoc.deleteOne()
                 return parent.save()
                     .then(() => {
                         return true
                     })
+            })
+            .catch(err => {
+                throw err
             })
     }
 

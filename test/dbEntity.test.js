@@ -941,7 +941,7 @@ describe('Db Entity', () => {
                     })
                     .then((data) => {
                         expect(data).true
-                        return dbModel.count()
+                        return dbModel.countDocuments()
                     })
                     .then((data) => {
                         expect(data).eqls(0)
@@ -960,7 +960,7 @@ describe('Db Entity', () => {
                         return entity.remove(ID_NOT_EXIST)
                     })
                     .then((data) => {
-                        expect(data).undefined
+                        expect(data).false
                     })
             })
         })

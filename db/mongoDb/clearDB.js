@@ -1,6 +1,6 @@
-var url = require('url'),
-    {each} = require('underscore'),
-    mongoose = require('mongoose');
+const _ = require('lodash')
+const mongoose = require('mongoose')
+const connect = require('./ConnectMongoDb')
 
 var beforeEachRegistered = false;
 var afterHookRegistered = false;
@@ -17,8 +17,8 @@ module.exports = function (uriString, options) {
         uriString = 'mongodb://localhost/test';
     }
 
-    //let db = mongoose.connection;
-    let db;
+    let conn
+    // Mongoose可通过conn.client调用Mongodb Client API
     
     if (!options.noClear && !beforeEachRegistered) {
         if ('function' == typeof beforeEach && beforeEach.length > 0) {
@@ -36,49 +36,25 @@ module.exports = function (uriString, options) {
         }
     }
 
-    return function () {
-        return db ? clearCollections() : clearDB();
-    };
-
-    function clearDB() {
-        return mongoose.connect(dbURI, {
-            useNewUrlParser: true,
-            useFindAndModify: false,
-            useCreateIndex: true,
-            autoIndex:true,
-            useUnifiedTopology: true
-            /* other options */
-        })
-        .then((conn) => {
-          db = conn.connection
-            return clearCollections()
-        })
+    async function clearDB() {
+        const dbConn = await connect(()=>{}, dbURI)
+        conn = dbConn.connection
+        await clearCollections()
     }
 
-
-    function clearCollections() {
-        let todo = []
-        return db.db.collections()
-            .then(colls => {
-                each(colls, coll => {
-                    if (coll.collectionName.match(/^system\./)) return;
-                    if (options.skip instanceof Array && options.skip.indexOf(collection.collectionName) > -1) return;
-
-                    todo.push(coll.deleteMany({}, {
-                        safe: true
-                    }))
-                })
-                return Promise.all(todo) 
-            })
-            .then(data => {
-                return data
-            })
-            .catch(e => {
-                throw e
-            })
+    async function clearCollections() {
+        const collections = _.values(conn.collections)
+        for (const coll of collections) {
+            if (!coll.name.match(/^system\./) && !(options.skip instanceof Array &&
+                options.skip.indexOf(coll.name) < 0)) {
+                await conn.db.collection(coll.name).deleteMany({})
+            }
+        }
     }
 
     function closeDB() {
-        return db.connection.close();
+        return conn.close();
     }
+
+    return clearDB
 };
