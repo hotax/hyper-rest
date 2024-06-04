@@ -2,12 +2,17 @@ const mongodb = require('mongodb'),
     mongoose = require('mongoose')
 
 const createGridFs = (config) => {
-    let bucket
+    config = config || {}
+    let db, bucket, filesColl, chunksColl
+    let { bucketName } = config
+    if (!bucketName) bucketName = 'fs'
 
     const createBucket = () => {
         if (!bucket) {
-            const db = mongoose.connection.db
+            db = mongoose.connection.db
             bucket = new mongodb.GridFSBucket(db, config)
+            filesColl = db.collection(`${bucketName}.files`)
+            chunksColl = db.collection(`${bucketName}.chunks`)
         }
     }
     const gridFs = {
@@ -29,10 +34,22 @@ const createGridFs = (config) => {
             const objId = new mongoose.Types.ObjectId(id)
             return bucket.delete(objId)
         },
+        download: (id) => {
+            createBucket()
+            id = new mongoose.Types.ObjectId(id)
+            return bucket.openDownloadStream(id)
+        },
         openDownloadStream: (id) => {
             createBucket()
             id = new mongoose.Types.ObjectId(id)
             return bucket.openDownloadStream(id)
+        },
+        clearAll: async () => {
+            createBucket()
+            const cursor = bucket.find();
+            for await (const doc of cursor) {
+                await bucket.delete(doc._id)
+            }
         }
     }
     return gridFs

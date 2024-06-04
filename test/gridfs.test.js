@@ -1,3 +1,4 @@
+const { expect } = require('chai')
 const fs = require('fs'),
     path = require('path'),
     mongoose = require('mongoose')
@@ -13,13 +14,18 @@ describe('GridFs', () => {
     beforeEach(function () {
         return clearDB()
             .then(() => {
-                bucketName = 'fs'
+                bucketName = 'fs'   // fs is also the default bucket name
                 testFileName = path.join(__dirname, './data/clx.jpg')
+                targetFileName = path.join(__dirname, './data/clx1.jpg')
                 gridFs = createGridFs()
                 rs = fs.createReadStream(testFileName)
                 filesColl = mongoose.connection.db.collection(`${bucketName}.files`)
                 chunksColl = mongoose.connection.db.collection(`${bucketName}.chunks`)
             })
+    })
+
+    afterEach(async () => {
+        await gridFs.clearAll()
     })
 
     describe('Upload', () => {
@@ -115,5 +121,17 @@ describe('GridFs', () => {
                 expect(d).eql(buf)
             })
         })
+    })
+
+    it('集成', async ()=>{
+        return gridFs.upload(rs, fileName)
+            .then(id => {
+                gs = gridFs.download(new mongoose.Types.ObjectId(id))
+                ws = fs.createWriteStream(targetFileName)
+                ws.on('finish', ()=>{
+                    return fs.promises.rm(targetFileName)
+                })
+                gs.pipe(ws)
+            })
     })
 })

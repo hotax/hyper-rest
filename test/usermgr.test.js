@@ -1,5 +1,6 @@
 const { expect } = require('chai')
 const { schema } = require('../jwt/WxSessionsMongoDbSchema')
+// const clearDB = require('../db/mongoDb/clearDB')
 
 describe('权限管理', function () {
 	const ID_NOT_EXIST = '5ce79b99da3537277c3f3b66'
@@ -118,7 +119,6 @@ describe('权限管理', function () {
 		})
 
 		describe('按特定类型进行搜索', () => {
-			let save
 			beforeEach(() => {
 				let records = []
 				records.push(dbSave(Schema, {
@@ -145,54 +145,39 @@ describe('权限管理', function () {
 					name: 'user5',
 					isAdmin: false
 				}))
-				save = Promise.all(records)
+				return Promise.all(records)
 			})
 
 			it('所有 - ALL', () => {
-				return save
-					.then(() => {
-						return entity.search({TYPE: 'ALL'})
-					})
+				return entity.search({TYPE: 'ALL'})
 					.then((users) => {
 						expect(users.length).eql(5)
 					})
 			})
 
 			it('非用户 - NONUSER', () => {
-				return save
-					.then(() => {
-						return entity.search({TYPE: 'NONUSER'})
-					})
+				return entity.search({TYPE: 'NONUSER'})
 					.then((users) => {
 						expect(users.length).eql(3)
 					})
 			})
 
 			it('用户 - ALLUSER', () => {
-				return save
-					.then(() => {
-						return entity.search({TYPE: 'ALLUSER'})
-					})
+				return entity.search({TYPE: 'ALLUSER'})
 					.then((users) => {
 						expect(users.length).eql(2)
 					})
 			})
 
 			it('系统管理员 - ADMIN', () => {
-				return save
-					.then(() => {
-						return entity.search({TYPE: 'ADMIN'})
-					})
+				return entity.search({TYPE: 'ADMIN'})
 					.then((users) => {
 						expect(users.length).eql(1)
 					})
 			})
 
 			it('非系统管理员用户 - NONADMINUSER', () => {
-				return save
-					.then(() => {
-						return entity.search({TYPE: 'NONADMINUSER'})
-					})
+				return entity.search({TYPE: 'NONADMINUSER'})
 					.then((users) => {
 						expect(users.length).eql(1)
 					})
