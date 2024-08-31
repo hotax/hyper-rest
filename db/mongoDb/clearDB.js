@@ -43,7 +43,7 @@ module.exports = function (uriString, options) {
     }
 
     async function clearCollections() {
-        const collections = _.values(conn.collections)
+        const collections = await conn.db.listCollections().toArray()
         for (const coll of collections) {
             if (!coll.name.match(/^system\./) && !(options.skip instanceof Array &&
                 options.skip.indexOf(coll.name) < 0)) {
